@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from starlette.middleware.cors import CORSMiddleware
+
 from scrapping import *
 import utils
 
@@ -9,6 +11,16 @@ class User(BaseModel):
     student_id:str
     password:str
 
+origins = [
+    "*"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = ["*"],
+    allow_methods = ["*"],
+    allow_headers = ["*"]
+)
 
 @app.post("/")
 async def root(user:User):
