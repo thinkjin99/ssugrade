@@ -1,4 +1,3 @@
-from user import *
 URL = "https://ecc.ssu.ac.kr/sap/bc/webdynpro/sap/ZCMB3W0017"
 
 LOGIN_HEADER = {
@@ -18,8 +17,8 @@ PAYLOAD = {
     'sap-system-login-cookie_disabled':None, 
     'sysid': "SSP",
     'sap-client': "100",
-    'sap-user': USER_ID,
-    'sap-password': USER_PASS,
+    'sap-user': '',
+    'sap-password': '',
     'sap-language': "KO",
     'sap-language-dropdown': "한국어",
     }

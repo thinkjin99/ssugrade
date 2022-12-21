@@ -18,7 +18,7 @@ async def max_retry(function, *args, retry=3):
 
 async def get_login_cookie(payload:dict):
     try:
-        login_res = requests.post(URL, data=payload, allow_redirects=False)
+        login_res = requests.post(URL, data=payload, allow_redirects=False, timeout=2)
         login_cookies = login_res.cookies
         if 'MYSAPSSO2' not in login_cookies.keys():
             raise AssertionError("Wrong ID or Password") #401에러 등의 응답 메시지 줘야 할듯
@@ -51,7 +51,7 @@ async def load_main_page(cookie_list:list):
     await context.add_cookies(cookie_list)    
     page = await context.new_page()
     try:
-        await max_retry(page.goto, URL)
+        await max_retry(page.goto, URL, {'timeout':3000})
         if not page:
             raise AssertionError("Page Load Failed")
         return page
@@ -74,7 +74,7 @@ async def get_inner_texts(page:Page):
     try:
         selector = 'tbody[id^="WD0"]'
         loc = page.locator(selector)
-        await expect(loc).to_be_visible()
+        await expect(loc).to_be_visible({'timeout':3000})
         inner_texts = await loc.inner_text()
 
         if not inner_texts: 
@@ -82,26 +82,32 @@ async def get_inner_texts(page:Page):
         return inner_texts
 
     except TimeoutError:
-        logger.warning("Time out in locating")
+        raise TimeoutError("Time out in locating")
 
 
 async def run(student_id:str, password:str):
-    grade_info = None
+    res = None
     try:
         payload = utils.get_payload(student_id, password)
         cookie_list = await max_retry(get_login_cookie, payload)
-        page = await max_retry(load_main_page, cookie_list)
-        inner_texts = await max_retry(get_inner_texts, page)
-        grade_info = parse_grade(inner_texts)
+        page = await load_main_page(cookie_list)
+        inner_texts = await get_inner_texts(page, {'timeout':5000})
+        res = parse_grade(inner_texts)
 
     except AssertionError as e:
         logger.error(e)
+        res = e
 
-    except Exception as e:
-        logger.error("Something goes Wrong")
+    except TimeoutError as e:
+        logger.error(e)
+        res = e
     
+    except Exception as e:
+        logger.error(e)
+        res = e
+        
     finally:
-        return grade_info
+        return res
 
 
 # if __name__ == '__main__':
