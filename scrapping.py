@@ -1,12 +1,15 @@
 import requests
-from playwright.sync_api import sync_playwright
-from constant import *
-from playwright.sync_api import expect
+from playwright.async_api import async_playwright
+from playwright.async_api import expect
 
-def max_retry(function, *args, retry=3):
+from constant import *
+import utils
+import asyncio
+
+async def max_retry(function, *args, retry=3):
     try:
         for _ in range(retry):
-            res = function(*args) if args else function()
+            res = await function(*args) if args else await function()
             if res: break
         return res
         
@@ -14,7 +17,7 @@ def max_retry(function, *args, retry=3):
         print(f"{function},{args} has faild\n", e)
 
 
-def get_login_cookie(payload=PAYLOAD):
+async def get_login_cookie(payload):
     try:
         login_res = requests.post(URL, data=payload, allow_redirects=False)
         login_cookies = login_res.cookies
@@ -26,19 +29,19 @@ def get_login_cookie(payload=PAYLOAD):
         print("Login has failed.") #연결 오류 에러.
 
 
-def load_main_page(cookie_list):
-    playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=True)
-    context = browser.new_context()
-    context.add_cookies(cookie_list)    
-    page = context.new_page()
+async def load_main_page(cookie_list):
+    playwright = await async_playwright().start()
+    browser = await playwright.chromium.launch(headless=True)
+    context = await browser.new_context()
+    await context.add_cookies(cookie_list)    
+    page = await context.new_page()
     try:
-        max_retry(page.goto, URL)
+        await max_retry(page.goto, URL)
+        assert page, "Page Load Failed"
+        return page
     
     except TimeoutError:
         print("Usaint down") #유세인트 연결 안됨.
-    
-    return page
 
 
 def parse_grade(inner_texts):
@@ -50,21 +53,25 @@ def parse_grade(inner_texts):
     return grade_info
 
 
-
-def get_inner_texts(page):
+async def get_inner_texts(page):
     # "tr > td:not(:first-child):not(:last-child)"
     selector = 'tbody[id^="WD0"]'
     loc = page.locator(selector)
-    expect(loc).to_be_visible()
-    inner_texts = loc.inner_text()
+    await expect(loc).to_be_visible()
+
+    inner_texts = await loc.inner_text()
     assert inner_texts, "Locator can't locate table"
     return inner_texts
 
 
-
-if __name__ == '__main__':
-    cookie_list = max_retry(get_login_cookie)
-    page = max_retry(load_main_page, cookie_list)
-    inner_texts = get_inner_texts(page)
+async def run(student_id:str, password:str):
+    payload = utils.get_payload(student_id, password)
+    cookie_list = await max_retry(get_login_cookie, payload)
+    page = await max_retry(load_main_page, cookie_list)
+    inner_texts = await get_inner_texts(page)
     grade_info = parse_grade(inner_texts)
-    print(grade_info)
+    return grade_info
+
+
+# if __name__ == '__main__':
+    # asyncio.ensure_future(run())
