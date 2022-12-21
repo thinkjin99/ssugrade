@@ -28,7 +28,7 @@ async def root(user:User):
         res = await run(user.student_id, user.password)
         return res
 
-    except:
+    except Exception:
         raise HTTPException(status_code=500, detail="Erorr Occurs in Scrapping Server")
 
 
