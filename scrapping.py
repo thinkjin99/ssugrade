@@ -123,6 +123,8 @@ class Usaint():
             await self.click_button(semester_selector)
             await self.wait_content_table() #페이지 테이블 로딩을 대기
 
+        return True #클릭이 정상적으로 완료됨.
+
 
     async def get_inner_texts(self):
         """
@@ -159,10 +161,9 @@ class Usaint():
         """
         res = None
         try:
-            await self.create_default_browser() #브라우저를 가동합니다.
-            await self.load_main_page() #로그인 및 성적 페이지를 로딩합니다.
-            await self.click_year_semester(year=year, semester=semester) #원하는 년도와 학기를 설정합니다.
-
+            await utils.max_retry(self.create_default_browser) #브라우저를 가동합니다.
+            await utils.max_retry(self.load_main_page) #로그인 및 성적 페이지를 로딩합니다.
+            await utils.max_retry(self.click_year_semester, year=year, semester=semester) #원하는 년도와 학기를 설정합니다.
             inner_texts = await utils.max_retry(self.get_inner_texts) #성적 테이블의 텍스트를 추출합니다.
             res = utils.parse_grade(inner_texts) #텍스트를 JSON형식의 딕셔너리로 파싱합니다.
 
@@ -186,9 +187,8 @@ class Usaint():
 
 if __name__ == '__main__':
     import asyncio
-    # 20213118 rlagustn1!
-    my_saint = Usaint('20213118', 'rlagustn1!')
-    # my_saint.create_default_browser()
+    from user import *
+    my_saint = Usaint(USER_ID, PASSWORD)
     res = asyncio.run(my_saint.run(2022, 2))
     print(res)
 

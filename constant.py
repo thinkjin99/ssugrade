@@ -1,5 +1,8 @@
 URL = "https://ecc.ssu.ac.kr/sap/bc/webdynpro/sap/ZCMB3W0017"
 
+YEAR = 2022
+SEMESTER = 3
+
 LOGIN_HEADER = {
     'Accept': 'text/html',
     "Accept-Language": "ko-KR",
