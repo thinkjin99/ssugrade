@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse, JSONResponse
 
-from scrapping import *
-import utils
+from scrapping import Usaint
+import login
 
 app = FastAPI()
 
@@ -22,22 +23,27 @@ app.add_middleware(
     allow_headers = ["*"]
 )
 
-@app.post("/")
-async def root(user:User):
+@app.get("/")
+async def root_get():
+    return RedirectResponse("/docs")
+
+
+@app.post("/grade")
+async def root(user:User, year:str=2022, semester:str=2):
     try:
-        res = await run(user.student_id, user.password)
-        return res
+        my_saint = Usaint(user.student_id, user.password)
+        data = await my_saint.run(year, semester)
+        return JSONResponse(content=data, status_code=200)
 
     except Exception:
         raise HTTPException(status_code=500, detail="Erorr Occurs in Scrapping Server")
 
 
 @app.post("/login", status_code=200)
-async def login(user:User):
-    payload = utils.get_payload(user.student_id, user.password)
+async def _login(user:User):
     try:
-        await get_login_cookie(payload)
-        return "Login Success"
+        await login.get_login_cookie(user.student_id, user.password)
+        return JSONResponse(content="Login Success")
     
     except AssertionError:
         raise HTTPException(status_code=401, detail="Login Failed")
