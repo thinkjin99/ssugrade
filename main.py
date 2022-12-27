@@ -40,7 +40,7 @@ async def root(user:User, year:str=2022, semester:str=2):
 
 
 @app.post("/login", status_code=200)
-async def login(user:User):
+async def _login(user:User):
     try:
         await login.get_login_cookie(user.student_id, user.password)
         return JSONResponse(content="Login Success")
