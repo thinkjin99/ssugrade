@@ -80,10 +80,14 @@ class Usaint():
         Returns:
             bool: 클릭이 정상적으로 진행되면 참
         """
-        loc = self.page.locator(selector)
-        await expect(loc).to_be_enabled(timeout=2000)
-        await loc.click(timeout=2000) #클릭을 실시한다.
-        return True #클릭이 정상적으로 진행됨
+        try:
+            loc = self.page.locator(selector)
+            await expect(loc).to_be_enabled(timeout=5000)
+            await loc.click(timeout=5000) #클릭을 실시한다.
+            return True #클릭이 정상적으로 진행됨
+        
+        except AssertionError:
+            return False
 
 
     async def wait_content_table(self):
@@ -118,14 +122,16 @@ class Usaint():
 
         #현재 로딩된 년도와 쿼리한 년도가 다른 경우
         if year != YEAR:
-            await self.click_button(year_drop_selector) 
-            await self.click_button(year_selector)
-            await self.wait_content_table() #페이지 테이블 로딩을 대기
+            if await self.click_button(year_drop_selector) and await self.click_button(year_selector):
+                await self.wait_content_table() #페이지 테이블 로딩을 대기
+            else:
+                return False
 
         if semester != SEMESTER:
-            await self.click_button(semester_drop_selector)
-            await self.click_button(semester_selector)
-            await self.wait_content_table() #페이지 테이블 로딩을 대기
+            if await self.click_button(semester_drop_selector) and await self.click_button(semester_selector):
+                await self.wait_content_table() #페이지 테이블 로딩을 대기
+            else:
+                return False
 
         return True #클릭이 정상적으로 완료됨.
 
@@ -165,13 +171,14 @@ class Usaint():
         """
         res = None
         try:
-            await utils.max_retry(self.create_default_browser) #브라우저를 가동합니다.
-            await utils.max_retry(self.load_main_page) #로그인 및 성적 페이지를 로딩합니다.
-            table_content = await self.click_year_semester(year=year, semester=semester) #원하는 년도와 학기를 설정합니다.
-            
-            if table_content:
-                inner_texts = await utils.max_retry(self.get_inner_texts) #성적 테이블의 텍스트를 추출합니다.
-                res = utils.parse_grade(inner_texts) #텍스트를 JSON형식의 딕셔너리로 파싱합니다.
+            #브라우저를 가동합니다.
+            #로그인 및 성적 페이지를 로딩합니다.
+            if await utils.max_retry(self.create_default_browser) and await utils.max_retry(self.load_main_page):
+                #원하는 년도와 학기를 설정합니다.
+                click_res = await self.click_year_semester(year=year, semester=semester) 
+                if click_res:
+                    inner_texts = await utils.max_retry(self.get_inner_texts) #성적 테이블의 텍스트를 추출합니다.
+                    res = utils.parse_grade(inner_texts) #텍스트를 JSON형식의 딕셔너리로 파싱합니다.
 
         except AssertionError as e:
             self.logger.error(e)
@@ -183,7 +190,8 @@ class Usaint():
             self.logger.error(e)
             
         finally:
-            await self.close_browser()
+            if self.browser:
+                await self.close_browser()
             return res
     
 
