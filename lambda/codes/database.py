@@ -9,6 +9,8 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.dialects.mysql import insert
 from typing import Callable, Iterator
 
+from config.settings import DB_ENDPOINT, USER_ID, PASSWORD, HOST, DB_NAME
+
 
 @contextmanager
 def create_session(is_read_session: bool = True):
@@ -25,7 +27,7 @@ def create_session(is_read_session: bool = True):
         Session: DB 세션
     """
     # endpoint = READ_ENDPOINT if is_read_session else WRITE_ENDPOINT
-    endpoint = f"mysql+pymysql://root:kidok0714@ssu-grade.cjuakk8k6gun.ap-northeast-2.rds.amazonaws.com/ssugrade"
+    endpoint = f"mysql+pymysql://{USER_ID}:{PASSWORD}@{HOST}/{DB_NAME}"
     engine = create_engine(endpoint)
     Session = sessionmaker(bind=engine)
     session = Session()
