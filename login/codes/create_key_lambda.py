@@ -7,7 +7,7 @@ from refresh_cookie_lambda import login
 from lambda_utils import lamdba_decorator
 
 
-def create_key():
+def create_rsa_key():
     key = RSA.generate(1024)
     private_key = key.exportKey()
     public_key = key.publickey().exportKey()
@@ -35,6 +35,7 @@ def handler(event, context) -> str:
     fcm_token = body["fcm_token"]
 
     login(student_number, password)
-    private_key, public_key = create_key()
+    private_key, public_key = create_rsa_key()
     save_public_key(student_number, public_key.decode(), fcm_token)
     return private_key.decode()
+

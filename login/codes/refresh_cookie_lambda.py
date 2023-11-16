@@ -1,5 +1,4 @@
 import json
-import traceback
 import boto3
 import requests
 
@@ -21,10 +20,21 @@ def login(student_number: str, password: str) -> requests.Response:
     payload = PAYLOAD.copy()
     payload["sap-user"] = student_number
     payload["sap-password"] = password
+    login_res = None
+    for _ in range(3):
+        try:
+            login_res = requests.post(
+                URL,
+                data=payload,
+                allow_redirects=False,
+                timeout=5,
+                headers=LOGIN_HEADER,
+            )  # 로그인 시도
+        except Exception:
+            continue
 
-    login_res = requests.post(
-        URL, data=payload, allow_redirects=False, timeout=3, headers=LOGIN_HEADER
-    )  # 로그인 시도
+    if login_res == None:
+        raise Exception("Connection Fail")
 
     login_cookies = login_res.cookies
     assert "MYSAPSSO2" in login_cookies.keys(), "login fail"  # 실패 코드 전달시
@@ -58,7 +68,7 @@ def put_cookie_to_s3(student_number: str, cookie: dict):
 
 
 @lamdba_decorator
-def handler(event, context) -> dict:
+def handler(event, context) -> str:
     body = json.loads(event["body"])
     check_vaild_request(body, ["student_number", "password"])
 
@@ -69,5 +79,6 @@ def handler(event, context) -> dict:
     cookie = get_cookie(login_res)
 
     put_cookie_to_s3(student_number, {"cookie": cookie})
-    response = create_response(200, "success")
-    return response
+    return "success"
+
+
