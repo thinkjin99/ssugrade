@@ -9,7 +9,7 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.dialects.mysql import insert
 from typing import Callable, Iterator
 
-from config.settings import DB_ENDPOINT, USER_ID, PASSWORD, HOST, DB_NAME
+from config.settings import USER_ID, PASSWORD, HOST, DB_NAME
 
 
 @contextmanager

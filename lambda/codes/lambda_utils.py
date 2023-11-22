@@ -1,7 +1,8 @@
 import traceback
+import json
 
 
-def create_response(status_code: str | int, msg: str) -> dict:
+def create_response(status_code: str | int, data: dict) -> dict:
     """
     AWS_PROXY 설정의 람다 응답 기본형태
 
@@ -16,7 +17,7 @@ def create_response(status_code: str | int, msg: str) -> dict:
         "isBase64Encoded": False,
         "headers": {"Content-Type": "application/json"},
         "statusCode": status_code,
-        "body": msg,
+        "body": json.dumps(data),
     }
     return response
 
@@ -48,10 +49,10 @@ def lamdba_decorator(func):
             response = create_response(200, res)
 
         except AssertionError as e:
-            response = create_response(401, str(e))
+            response = create_response(401, {"msg": str(e)})
 
         except Exception as e:
-            response = create_response(500, str(traceback.format_exc()))
+            response = create_response(500, {"msg": str(traceback.format_exc())})
 
         finally:
             return response
