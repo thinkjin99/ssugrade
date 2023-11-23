@@ -1,6 +1,6 @@
 from playwright.async_api import async_playwright, BrowserContext, expect, Page
 
-import utils
+import scraping.parse as parse
 from constant import *
 from read_cookies import get_cookies
 
@@ -9,7 +9,7 @@ async def create_default_browser():
     playwright = await async_playwright().start()
     browser = await playwright.chromium.launch(
         args=[
-            "--headless",  # 백그라운드에서 실행
+            # "--headless",  # 백그라운드에서 실행
             "--disable-gpu",  # GPU 활용 하지 않음
             "--single-process",  # 싱글 프로세스로 실행
             "--no-sandbox",  # GPU 사용안함
@@ -47,8 +47,15 @@ async def click_button(page: Page, selector: str):
         bool: 클릭이 정상적으로 진행되면 참
     """
     loc = page.locator(selector)
-    await expect(loc).to_be_enabled(timeout=3000)  # 버튼이 클릭 가능한 상태가 될때 까지 대기
-    await loc.click(timeout=3000)  # 클릭 실시.
+    for _ in range(3):
+        try:
+            await expect(loc).to_be_enabled(timeout=1000)  # 버튼이 클릭 가능한 상태가 될때 까지 대기
+            await loc.click()  # 클릭 실시.
+            break
+
+        except Exception as e:
+            print(e, selector)
+            continue
 
 
 async def check_is_empty_semester(page: Page) -> bool:
@@ -85,10 +92,27 @@ async def wait_for_update(page: Page, check_selector: str, change_value: str):
 
 async def click_dropdown(page: Page, dropdown_selector: str, value_selector: str):
     await click_button(page, dropdown_selector)  # 드랍다운 버튼 클릭
-    await click_button(page, value_selector)  # 드랍 다운에서 년도 클릭
+    await click_button(page, value_selector)  # 드랍 다운에서 값 클릭
 
 
-async def set_year_semester_dropdown(page: Page, year: str, semester: str):
+async def set_semeseter_dropdown(page: Page, semester: int | str):
+    semester_drop_selector = 'input[role="combobox"][value$="학기"]'
+    semester_selector = f'div[class~="lsListbox__value"][data-itemkey="09{semester}"]'
+
+    semester_update_selector = (
+        'tbody[id^="WD0"] tr:nth-child(2) td:nth-child(3)'  # 로딩된 성적의 학기 셀렉터
+    )
+
+    # 현재 로딩된 년도와 쿼리한 년도가 다른 경우
+
+    if semester != SEMESTER:
+        await click_dropdown(page, semester_drop_selector, semester_selector)
+        await wait_for_update(
+            page, semester_update_selector, SEMESTER_MAP[str(semester)]
+        )  # 페이지 테이블 로딩을 대기
+
+
+async def set_year_dropdown(page: Page, year: int | str):
     """
     년도와 학기 설정을 위한 버튼을 클릭한다.
 
@@ -99,34 +123,12 @@ async def set_year_semester_dropdown(page: Page, year: str, semester: str):
     # 년도의 드랍다운 버튼과 년도 원소 셀렉터
     year_drop_selector = 'input[role="combobox"][value^="20"]'
     year_selector = f'div[class~="lsListbox__value"][data-itemkey="{year}"]'
-
-    semester_drop_selector = 'input[role="combobox"][value$="학기"]'
-    semester_selector = f'div[class~="lsListbox__value"][data-itemkey="09{semester}"]'
-    semester_map = {
-        "0": "1 학기",
-        "1": "여름학기",
-        "2": "2 학기",
-        "3": "겨울학기",
-    }  # semester 값과 드랍다운 값 매핑
-
     year_update_selector = (
         'tbody[id^="WD0"] tr:nth-child(2) td:nth-child(2)'  # 로딩된 성적의 년도 셀렉터
     )
-    semester_update_selector = (
-        'tbody[id^="WD0"] tr:nth-child(2) td:nth-child(3)'  # 로딩된 성적의 학기 셀렉터
-    )
-
-    # 현재 로딩된 년도와 쿼리한 년도가 다른 경우
-
     if year != YEAR:
         await click_dropdown(page, year_drop_selector, year_selector)
-        await wait_for_update(page, year_update_selector, year)  # 페이지 테이블 로딩을 대기
-
-    if semester != SEMESTER:
-        await click_dropdown(page, semester_drop_selector, semester_selector)
-        await wait_for_update(
-            page, semester_update_selector, semester_map[semester]
-        )  # 페이지 테이블 로딩을 대기
+        await wait_for_update(page, year_update_selector, str(year))  # 페이지 테이블 로딩을 대기
 
 
 async def get_inner_texts(page: Page):
@@ -158,7 +160,36 @@ async def click_popup(page: Page, selector: str):
         print("No popup...")
 
 
-async def run(student_number: str, year: str, semester: str):
+async def scrap_grade(page: Page):
+    inner_texts = await get_inner_texts(page)
+    res = parse.parse_grade(inner_texts)  # 텍스트를 JSON형식의 딕셔너리로 파싱합니다.
+    return res
+
+
+async def get_all_grade(page: Page, student_number: str):
+    first_year = YEAR
+    total_grade = {}
+
+    for year in range(int(first_year), YEAR + 1):
+        await set_year_dropdown(page, year)
+
+        semester_grade = {}
+        for semester_value, semester_name in SEMESTER_MAP.items():
+            await set_semeseter_dropdown(page, semester_value)
+            semester_grade[semester_name] = await scrap_grade(page)
+
+        total_grade[year] = semester_grade
+    return total_grade
+
+
+async def get_now_grade(page: Page):
+    await set_year_dropdown(page, YEAR)
+    await set_semeseter_dropdown(page, 0)
+    now_grade = await scrap_grade(page)
+    return now_grade
+
+
+async def run(student_number: str, is_all: bool):
     """
     유세인트 성적 스크래핑 전체 로직을 가동합니다.
 
@@ -182,11 +213,14 @@ async def run(student_number: str, year: str, semester: str):
         await click_popup(page, ".urPWFloatRight")  # 팝업을 닫습니다.
 
         # 원하는 년도와 학기를 설정합니다.
-        await set_year_semester_dropdown(page, year=year, semester=semester)
-
+        # await set_year_semester_dropdown(page, year=year, semester=semester)
+        if is_all:
+            res = await get_all_grade(page, student_number)
+        else:
+            res = await get_now_grade(page)
         # if click_res:
-        inner_texts = await get_inner_texts(page)
-        res = utils.parse_grade(inner_texts)  # 텍스트를 JSON형식의 딕셔너리로 파싱합니다.
+        # inner_texts = await get_inner_texts(page)
+        # res = utils.parse_grade(inner_texts)  # 텍스트를 JSON형식의 딕셔너리로 파싱합니다.
 
     except Exception as e:
         print(e)
@@ -200,5 +234,5 @@ async def run(student_number: str, year: str, semester: str):
 if __name__ == "__main__":
     import asyncio
 
-    res = asyncio.run(run("20180811", "2023", "0"))
+    res = asyncio.run(run("20180811", True))
     print(res)
