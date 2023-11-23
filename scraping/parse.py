@@ -1,28 +1,27 @@
-import time
-
-# async def max_retry(function, **kwargs):
-#     for _ in range(3):
-#         try:
-#             res = await function(**kwargs) if kwargs else await function()
-#             if res: break
-
-#         except TimeoutError: continue
-
-#     if not res: raise AssertionError(f"{function} occurs error!")
-#     return res
+from constant import SEMESTER_MAP
+from collections import defaultdict
 
 
-def parse_grade(inner_texts: str):
-    column_names = ["이수학년도", "이수학기", "과목코드", "과목명", "과목학점", "성적", "등급", "교수명", "비고"]
-    column_len = len(column_names)
-    table_texts = inner_texts.split("\t")
+def parse_table(inner_texts: str, columns: list, unused_columns: set | list = []):
+    column_len = len(columns)
+    table_texts = [t if t != "\xa0" else "" for t in inner_texts.split("\t")]
     text_by_rows = [
-        table_texts[i : i + len(column_names)]
+        table_texts[i : i + len(columns)]
         for i in range(column_len + 2, len(table_texts), column_len + 1)
     ]  # 행 단위로 성적 가져옴
-    unusing_cols = set(("이수학년도", "이수학기", "비고"))  # 사용 안하는 속성들
     grade_info = [
-        {col: value for col, value in zip(column_names, row) if col not in unusing_cols}
+        {col: value for col, value in zip(columns, row) if col not in unused_columns}
         for row in text_by_rows
     ]
     return grade_info
+
+
+def parse_atteneded_semester(stats: list[dict]):
+    attended_semesters = defaultdict(list)
+    reversed_semester_map = {v: k for k, v in SEMESTER_MAP.items()}
+    for stat in stats:
+        year, semester = (stat.get("학년도"), stat.get("학기"))
+        if year and semester:
+            semester_value = reversed_semester_map[semester]
+            attended_semesters[year].append(semester_value)
+    return attended_semesters
