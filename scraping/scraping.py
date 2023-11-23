@@ -1,195 +1,66 @@
-from playwright.async_api import async_playwright, BrowserContext, expect, Page
+from contextlib import asynccontextmanager
 
-import scraping.parse as parse
+from page_action import *
+from page_load import *
+import parse
 from constant import *
 from read_cookies import get_cookies
 
 
-async def create_default_browser():
-    playwright = await async_playwright().start()
-    browser = await playwright.chromium.launch(
-        args=[
-            # "--headless",  # 백그라운드에서 실행
-            "--disable-gpu",  # GPU 활용 하지 않음
-            "--single-process",  # 싱글 프로세스로 실행
-            "--no-sandbox",  # GPU 사용안함
-            "--disable-extensions",
-            "--incognito",
-            "--deterministic-fetch",
-            "--disable-http-cache",
-            "--disable-dev-shm-usage",  # 메모리 공유 비활성화
-        ],
-        headless=False,
-    )
+async def get_page_grade(page: Page):
+    grade_table_selector = 'tbody[id^="WD0"]'
+    inner_texts = await get_inner_texts(page, grade_table_selector)
 
-    return browser  # 함수의 정상종료를 나타낸다.
+    columns = ["이수학년도", "이수학기", "과목코드", "과목명", "과목학점", "성적", "등급", "교수명", "비고"]
+    unused_coumnls = set(("비고"))  # 사용 안하는 속성들
 
-
-async def load_page(context: BrowserContext):
-    """
-    로그인 쿠키가 추가된 브라우저로 성적 페이지를 로딩한다.
-    """
-    page = await context.new_page()  # 페이지 생성
-    goto_res = await page.goto(url=URL, timeout=3000)
-    # goto에 실패하면 assertion 에러 발생
-    assert goto_res, "Page Load Failed"
-    return page  # 로딩이 완료됨.
-
-
-async def click_button(page: Page, selector: str):
-    """
-    셀렉터로 지정한 버튼을 클릭한다.
-
-    Args:
-        selector (str): 버튼을 위한 선택자
-
-    Returns:
-        bool: 클릭이 정상적으로 진행되면 참
-    """
-    loc = page.locator(selector)
-    for _ in range(3):
-        try:
-            await expect(loc).to_be_enabled(timeout=1000)  # 버튼이 클릭 가능한 상태가 될때 까지 대기
-            await loc.click()  # 클릭 실시.
-            break
-
-        except Exception as e:
-            print(e, selector)
-            continue
-
-
-async def check_is_empty_semester(page: Page) -> bool:
-    try:
-        first_row_selector = 'tbody[id^="WD0"] tr:nth-child(2)'  # 성적 테이블의 첫 행 선택
-        first_row = page.locator(first_row_selector)
-        await expect(first_row).not_to_be_empty(timeout=3000)
-        return False
-
-    except AssertionError as e:
-        return True
-
-
-async def wait_for_update(page: Page, check_selector: str, change_value: str):
-    """
-    성적 테이블 로딩을 대기한다.
-    """
-    try:
-        if await check_is_empty_semester(page):
-            print(">> Data is empty", change_value)
-            return
-
-        wait_selector = page.locator(check_selector).filter(
-            has_text=change_value
-        )  # 로딩이 완료될 때까지 대기
-
-        await expect(wait_selector).to_be_attached(timeout=3000)
-        return True
-
-    except AssertionError:
-        print(">> Can't find", change_value)
-        return False  # 테이블이 비어있음
-
-
-async def click_dropdown(page: Page, dropdown_selector: str, value_selector: str):
-    await click_button(page, dropdown_selector)  # 드랍다운 버튼 클릭
-    await click_button(page, value_selector)  # 드랍 다운에서 값 클릭
-
-
-async def set_semeseter_dropdown(page: Page, semester: int | str):
-    semester_drop_selector = 'input[role="combobox"][value$="학기"]'
-    semester_selector = f'div[class~="lsListbox__value"][data-itemkey="09{semester}"]'
-
-    semester_update_selector = (
-        'tbody[id^="WD0"] tr:nth-child(2) td:nth-child(3)'  # 로딩된 성적의 학기 셀렉터
-    )
-
-    # 현재 로딩된 년도와 쿼리한 년도가 다른 경우
-
-    if semester != SEMESTER:
-        await click_dropdown(page, semester_drop_selector, semester_selector)
-        await wait_for_update(
-            page, semester_update_selector, SEMESTER_MAP[str(semester)]
-        )  # 페이지 테이블 로딩을 대기
-
-
-async def set_year_dropdown(page: Page, year: int | str):
-    """
-    년도와 학기 설정을 위한 버튼을 클릭한다.
-
-    Args:
-        year (int, optional): 년도. Defaults to YEAR.
-        semester (int, optional): 학기. Defaults to SEMESTER.
-    """
-    # 년도의 드랍다운 버튼과 년도 원소 셀렉터
-    year_drop_selector = 'input[role="combobox"][value^="20"]'
-    year_selector = f'div[class~="lsListbox__value"][data-itemkey="{year}"]'
-    year_update_selector = (
-        'tbody[id^="WD0"] tr:nth-child(2) td:nth-child(2)'  # 로딩된 성적의 년도 셀렉터
-    )
-    if year != YEAR:
-        await click_dropdown(page, year_drop_selector, year_selector)
-        await wait_for_update(page, year_update_selector, str(year))  # 페이지 테이블 로딩을 대기
-
-
-async def get_inner_texts(page: Page):
-    """
-    성적 테이블 내부의 텍스트를 추출한다.
-
-    Raises:
-        AssertionError: 성적 테이블을 못찾는 경우
-
-    Returns:
-        str: 성적 테이블 내에 존재하는 모든 텍스트
-    """
-    # "tr > td:not(:first-child):not(:last-child)"
-    table_selector = 'tbody[id^="WD0"]'
-    table_loc = page.locator(table_selector)
-    await expect(table_loc).to_be_enabled(timeout=2000)
-    inner_texts = await table_loc.inner_text()
-
-    if not inner_texts:
-        # 값이 빈 경우는 태그 자체를 탐색하지 못한 경우이다.
-        raise AssertionError(">> Locator can't locate table")
-    return inner_texts
-
-
-async def click_popup(page: Page, selector: str):
-    try:
-        await click_button(page, selector)
-    except Exception as e:
-        print("No popup...")
-
-
-async def scrap_grade(page: Page):
-    inner_texts = await get_inner_texts(page)
-    res = parse.parse_grade(inner_texts)  # 텍스트를 JSON형식의 딕셔너리로 파싱합니다.
+    res = parse.parse_table(
+        inner_texts, columns, unused_coumnls
+    )  # 텍스트를 JSON형식의 딕셔너리로 파싱합니다.
     return res
 
 
-async def get_all_grade(page: Page, student_number: str):
-    first_year = YEAR
-    total_grade = {}
+async def scrap_stat(page: Page):
+    status_table_selector = 'tbody[id^="WD6"]'
+    columns = [
+        "학년도",
+        "학기",
+        "신청학점",
+        "취득학점",
+        "P/F학점",
+        "평점평균",
+        "평점계",
+        "산술평균",
+        "학기별석차",
+        "전체석차",
+        "상담여부",
+        "유급",
+    ]
+    inner_texts = await get_inner_texts(page, status_table_selector)
+    res = parse.parse_table(inner_texts, columns)
+    return res
 
-    for year in range(int(first_year), YEAR + 1):
-        await set_year_dropdown(page, year)
 
-        semester_grade = {}
-        for semester_value, semester_name in SEMESTER_MAP.items():
-            await set_semeseter_dropdown(page, semester_value)
-            semester_grade[semester_name] = await scrap_grade(page)
+async def scrap_all_grade(page: Page, attended_semester: dict):
+    grades = []
+    for year, semesters in attended_semester.items():
+        await click_year_dropdown(page, year)
+        for semester_value in semesters:
+            await click_semeseter_dropdown(page, semester_value)
+            grades.append(await get_page_grade(page))
 
-        total_grade[year] = semester_grade
-    return total_grade
+    return grades
 
 
-async def get_now_grade(page: Page):
-    await set_year_dropdown(page, YEAR)
-    await set_semeseter_dropdown(page, 0)
-    now_grade = await scrap_grade(page)
+async def scrap_now_grade(page: Page):
+    await click_year_dropdown(page, YEAR)
+    await click_semeseter_dropdown(page, SEMESTER)
+    now_grade = await get_page_grade(page)
     return now_grade
 
 
-async def run(student_number: str, is_all: bool):
+@asynccontextmanager
+async def open_new_page(cookie_list: list[dict]):
     """
     유세인트 성적 스크래핑 전체 로직을 가동합니다.
 
@@ -200,39 +71,31 @@ async def run(student_number: str, is_all: bool):
     Returns:
         _type_: _description_
     """
-    res = None
     browser = await create_default_browser()  # 브라우저를 가동합니다.
     try:
         # 로그인 및 성적 페이지를 로딩합니다.
-        context = await browser.new_context()  # 브라우저 생성
-        cookie_list = get_cookies(student_number)
-
-        await context.add_cookies(cookie_list)  # 매개변수가 SetCookieParam 형식이여야 한다.
-
-        page = await load_page(context)
-        await click_popup(page, ".urPWFloatRight")  # 팝업을 닫습니다.
-
-        # 원하는 년도와 학기를 설정합니다.
-        # await set_year_semester_dropdown(page, year=year, semester=semester)
-        if is_all:
-            res = await get_all_grade(page, student_number)
-        else:
-            res = await get_now_grade(page)
-        # if click_res:
-        # inner_texts = await get_inner_texts(page)
-        # res = utils.parse_grade(inner_texts)  # 텍스트를 JSON형식의 딕셔너리로 파싱합니다.
+        page = await load_usaint_page(browser, cookie_list)
+        yield page
 
     except Exception as e:
         print(e)
-    #     self.logger.error(e)
 
     finally:
         await browser.close()
-        return res
+
+
+async def run(student_number: str):
+    cookie_list = get_cookies(student_number)
+    async with open_new_page(cookie_list) as page:
+        stats = await scrap_stat(page)
+        attened_semester = parse.parse_atteneded_semester(stats)
+        grades = await scrap_all_grade(page, attened_semester)
+
+    return grades
 
 
 if __name__ == "__main__":
     import asyncio
 
-    res = asyncio.run(run("20180811", True))
+    res = asyncio.run(run("20180811"))
     print(res)
