@@ -1,9 +1,10 @@
 import json
-import boto3
 import requests
+import sqlalchemy
 
 from lambda_utils import *
 from constant import *
+from database import execute_query
 
 
 def login(student_number: str, password: str) -> requests.Response:
@@ -54,31 +55,21 @@ def get_cookie(response: requests.Response) -> list[dict[str, str]]:
     return cookie_list
 
 
-def put_cookie_to_s3(student_number: str, cookie: dict):
-    s3 = boto3.client("s3")
-    resp = s3.put_object(
-        ACL="private",
-        Bucket="user-tokens",
-        Body=json.dumps(cookie),
-        ContentType="application/json",
-        Key=student_number + ".json",
-        ServerSideEncryption="AES256",
-    )
-    return resp
+@execute_query
+def update_cookie(student_number: str, cookies: list):
+    stmt = f'''UPDATE users SET cookies='{json.dumps(cookies)}' WHERE student_number="{student_number}"'''
+    query = sqlalchemy.text(stmt)
+    return query
 
 
 @lamdba_decorator
 def handler(event, context) -> str:
     body = json.loads(event["body"])
-    check_vaild_request(body, ["student_number", "password"])
 
     student_number = body["student_number"]
     password = body["password"]
 
     login_res = login(student_number, password)
     cookie = get_cookie(login_res)
-
-    put_cookie_to_s3(student_number, {"cookie": cookie})
+    update_cookie(student_number, cookie)
     return "success"
-
-
