@@ -52,15 +52,15 @@ async def scrap_all_grade(page: Page, attended_semester: dict):
     return grades
 
 
-async def scrap_now_grade(page: Page):
-    await click_year_dropdown(page, YEAR)
-    await click_semeseter_dropdown(page, SEMESTER)
+async def scrap_one_grade(page: Page, year: str, semester: str):
+    await click_year_dropdown(page, year)
+    await click_semeseter_dropdown(page, semester)
     now_grade = await get_page_grade(page)
     return now_grade
 
 
 @asynccontextmanager
-async def open_new_page(cookie_list: list[dict]):
+async def open_browser(cookie_list: list[dict]):
     """
     유세인트 성적 스크래핑 전체 로직을 가동합니다.
 
@@ -72,10 +72,10 @@ async def open_new_page(cookie_list: list[dict]):
         _type_: _description_
     """
     browser = await create_default_browser()  # 브라우저를 가동합니다.
+
     try:
         # 로그인 및 성적 페이지를 로딩합니다.
-        page = await load_usaint_page(browser, cookie_list)
-        yield page
+        yield browser
 
     except Exception as e:
         print(e)
@@ -84,11 +84,45 @@ async def open_new_page(cookie_list: list[dict]):
         await browser.close()
 
 
-async def run(student_number: str):
+async def scrap_one_year(
+    page: Page, year: str, semesters: list, cookie_list: list[dict]
+):
+    grades = []
+    async with open_browser(cookie_list) as browser:
+        page = await load_usaint_page(browser, cookie_list)
+        await click_year_dropdown(page, year)
+        for semester_value in semesters:
+            await click_semeseter_dropdown(page, semester_value)
+            grades.append(await get_page_grade(page))
+    return grades
+
+
+async def run_multy(student_number: str):
     cookie_list = get_cookies(student_number)
-    async with open_new_page(cookie_list) as page:
+    grades = []
+
+    async with open_browser(cookie_list) as browser:
+        page = await load_usaint_page(browser, cookie_list)
         stats = await scrap_stat(page)
         attened_semester = parse.parse_atteneded_semester(stats)
+        tasks = []
+        for year, semesters in attened_semester.items():
+            tasks.append(scrap_one_year(page, year, semesters, cookie_list))
+
+        grades = await asyncio.gather(*tasks, return_exceptions=False)
+
+    return grades
+
+
+async def run(student_number: str):
+    cookie_list = get_cookies(student_number)
+    grades = []
+
+    async with open_browser(cookie_list) as browser:
+        page = await load_usaint_page(browser, cookie_list)
+        stats = await scrap_stat(page)
+        attened_semester = parse.parse_atteneded_semester(stats)
+
         grades = await scrap_all_grade(page, attened_semester)
 
     return grades
@@ -97,5 +131,7 @@ async def run(student_number: str):
 if __name__ == "__main__":
     import asyncio
 
-    res = asyncio.run(run("20180811"))
+    # res = asyncio.run(run("20180811"))
+    res = asyncio.run(run_multy("20180811"))
+
     print(res)

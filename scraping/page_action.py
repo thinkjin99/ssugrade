@@ -122,6 +122,6 @@ async def get_inner_texts(page: Page, selector: str):
 
 async def click_popup(page: Page, selector: str):
     try:
-        await page.click(selector)
+        await page.click(selector, timeout=1000)
     except Exception as e:
         print("No popup...")
