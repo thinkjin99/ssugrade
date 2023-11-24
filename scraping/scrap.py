@@ -52,15 +52,40 @@ async def scrap_all_grade(page: Page, attended_semester: dict):
     return grades
 
 
-async def scrap_one_grade(page: Page, year: str, semester: str):
-    await click_year_dropdown(page, year)
-    await click_semeseter_dropdown(page, semester)
-    now_grade = await get_page_grade(page)
-    return now_grade
+# async def scrap_one_grade(page: Page, year: str, semester: str):
+#     await click_year_dropdown(page, year)
+#     await click_semeseter_dropdown(page, semester)
+#     now_grade = await get_page_grade(page)
+#     return now_grade
+
+
+async def multy_scrap_year(
+    page: Page, year: str, semesters: list, cookie_list: list[dict]
+) -> list[dict]:
+    """
+    별도의 브라우저에서 해당 년도의 성적을 가져온다.
+
+    Args:
+        page (Page): 브라우저 페이지 객체
+        year (str): 년도
+        semesters (list): 학기들
+        cookie_list (list[dict]): 로그인에 활용되는 쿠키
+
+    Returns:
+        list: 해당 년도의 성적들
+    """
+    grades = []
+    async with open_browser(cookie_list) as browser:
+        page = await load_usaint_page(browser, cookie_list)
+        await click_year_dropdown(page, year)
+        for semester_value in semesters:
+            await click_semeseter_dropdown(page, semester_value)
+            grades.append(await get_page_grade(page))
+    return grades
 
 
 @asynccontextmanager
-async def open_browser(cookie_list: list[dict]):
+async def open_browser():
     """
     유세인트 성적 스크래핑 전체 로직을 가동합니다.
 
@@ -84,45 +109,30 @@ async def open_browser(cookie_list: list[dict]):
         await browser.close()
 
 
-async def scrap_one_year(
-    page: Page, year: str, semesters: list, cookie_list: list[dict]
-):
-    grades = []
-    async with open_browser(cookie_list) as browser:
-        page = await load_usaint_page(browser, cookie_list)
-        await click_year_dropdown(page, year)
-        for semester_value in semesters:
-            await click_semeseter_dropdown(page, semester_value)
-            grades.append(await get_page_grade(page))
-    return grades
-
-
 async def run_multy(student_number: str):
-    cookie_list = get_cookies(student_number)
-    grades = []
-
-    async with open_browser(cookie_list) as browser:
+    async with open_browser() as browser:
+        cookie_list = get_cookies(student_number)  # 로그인에 필요한 쿠키 데이터
         page = await load_usaint_page(browser, cookie_list)
-        stats = await scrap_stat(page)
+        stats = await scrap_stat(page)  # 현재까지의 학적 정보 가져옴
         attened_semester = parse.parse_atteneded_semester(stats)
-        tasks = []
-        for year, semesters in attened_semester.items():
-            tasks.append(scrap_one_year(page, year, semesters, cookie_list))
-
-        grades = await asyncio.gather(*tasks, return_exceptions=False)
+        tasks = [
+            multy_scrap_year(page, year, semesters, cookie_list)
+            for year, semesters in attened_semester.items()
+        ]  # 복수 개의 브라우저로 성적 스크래핑 실행
+        grades = await asyncio.gather(*tasks)
 
     return grades
 
 
-async def run(student_number: str):
+async def run_single(student_number: str):
     cookie_list = get_cookies(student_number)
     grades = []
-
-    async with open_browser(cookie_list) as browser:
+    print(cookie_list)
+    async with open_browser() as browser:
         page = await load_usaint_page(browser, cookie_list)
         stats = await scrap_stat(page)
         attened_semester = parse.parse_atteneded_semester(stats)
-
+        print(attened_semester)
         grades = await scrap_all_grade(page, attened_semester)
 
     return grades
@@ -130,8 +140,8 @@ async def run(student_number: str):
 
 if __name__ == "__main__":
     import asyncio
+    import time
 
-    # res = asyncio.run(run("20180811"))
-    res = asyncio.run(run_multy("20180811"))
-
+    start = time.time()
+    res = asyncio.run(run_single("20180811"))
     print(res)
