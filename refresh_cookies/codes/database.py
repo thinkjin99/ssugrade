@@ -28,7 +28,7 @@ def create_session(is_read_session: bool = True):
     """
     # endpoint = READ_ENDPOINT if is_read_session else WRITE_ENDPOINT
     endpoint = f"mysql+pymysql://{USER_ID}:{PASSWORD}@{HOST}/{DB_NAME}"
-    engine = create_engine(endpoint)
+    engine = create_engine(endpoint, connect_args={"connect_timeout": 10})
     Session = sessionmaker(bind=engine)
     session = Session()
     try:
