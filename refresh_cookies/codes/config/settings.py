@@ -1,9 +1,8 @@
 from dotenv import load_dotenv
-from pathlib import Path
 import os
 
-load_dotenv(str(Path.cwd().joinpath("config/.env")))
-app_env = os.getenv("APP_ENV", "dev")
+load_dotenv(os.path.dirname(os.path.realpath(__file__)) + "/.env")
+app_env = os.getenv("APP_ENV", "local")
 
 if app_env == "dev":
     USER_ID = os.getenv("USER_ID")
