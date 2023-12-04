@@ -3,7 +3,10 @@ from pydantic import BaseModel
 
 from fastapi.responses import JSONResponse
 
-from scrap import run_single_browser_scrap_now, run_single_browser_scrap_all
+from scrap import (
+    run_single_browser_scrap_now,
+    run_multy_browser_scrapl_all_grades,
+)
 
 app = FastAPI()
 
@@ -15,7 +18,7 @@ class User(BaseModel):
 @app.post("/grade/all")
 async def _scrap_all(user: User):
     try:
-        data = await run_single_browser_scrap_all(user.student_id)
+        data = await run_multy_browser_scrapl_all_grades(user.student_id)
         return JSONResponse(content=data, status_code=200)
 
     except Exception as e:
