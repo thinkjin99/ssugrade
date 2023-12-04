@@ -1,39 +1,16 @@
-ARG FUNCTION_DIR="/function"
-
 FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy as build-image
 
-RUN apt-get update && \
-    apt-get install -y \
-    g++ \
-    make \
-    cmake \
-    unzip \
-    libcurl4-openssl-dev
-# Copy requirements.txt
 
 ARG FUNCTION_DIR
-RUN mkdir -p ${FUNCTION_DIR}
-COPY ./code ${FUNCTION_DIR}
+COPY ./code .
 
-COPY requirements.txt ${FUNCTION_DIR}
-RUN pip3 install awslambdaric
+COPY requirements.txt .
 
-WORKDIR ${FUNCTION_DIR}
 RUN pip install -r requirements.txt
 RUN playwright install
 
-# ENTRYPOINT [ "/usr/bin/python", "-m", "awslambdaric" ]
-# CMD [ "scraping_all_lambda.handler" ]
-
-COPY ./entry_script.sh /entry_script.sh
-ADD aws-lambda-rie /usr/local/bin/aws-lambda-rie
-
-RUN chmod 755 /usr/local/bin/aws-lambda-rie
-RUN chmod 755 /entry_script.sh
-
-
-ENTRYPOINT [ "/entry_script.sh"]
-CMD [ "scraping_all_lambda.handler"  ]
+ENV YEAR="2023" SEMESTER="2"
+CMD ["uvicorn", "main:app","--host","127.0.0.1", "--port", "80"]
 
 
 
