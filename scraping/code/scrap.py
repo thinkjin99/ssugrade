@@ -87,17 +87,17 @@ async def new_tab_scrap_year_grades(
         return grade
 
 
-async def scrap_all_grade(page: Page, attendence_info: dict):
+async def scrap_all_grades(page: Page, attendence_info: dict):
     total_grades = []
     for year, semesters in attendence_info.items():
         if year != YEAR:
             await click_year_dropdown(page, year)
         year_grades = await scrap_year_grades(page, semesters)
-        total_grades.append(year_grades)
+        total_grades.extend(year_grades)
     return total_grades
 
 
-async def new_tab_scrap_all_grade(
+async def new_tab_scrap_all_grades(
     attendence_info: dict, cookie_list: list[dict]
 ) -> list[dict]:
     """
@@ -112,7 +112,7 @@ async def new_tab_scrap_all_grade(
     return total_grades
 
 
-async def run_multy(student_number: str):
+async def run_multy_browser_scrapl_all_grades(student_number: str):
     total_grades = []
     async with open_browser() as browser:
         cookie_list = get_cookies(student_number)  # 로그인에 필요한 쿠키 데이터
@@ -128,7 +128,7 @@ async def run_multy(student_number: str):
             attendence_info = {
                 k: v for k, v in attendence_info.items() if k != first_year
             }
-            grades = await new_tab_scrap_all_grade(attendence_info, cookie_list)
+            grades = await new_tab_scrap_all_grades(attendence_info, cookie_list)
             total_grades.extend(grades)
 
         total_grades.extend(await task)
@@ -139,8 +139,6 @@ async def run_single_browser_scrap_now(student_number: str):
     cookie_list = get_cookies(student_number)
     async with open_browser() as browser:
         page = await load_usaint_page(browser, cookie_list)
-        await click_year_dropdown(page, "2023")
-        await click_semeseter_dropdown(page, "0")
         grades = await get_page_grades(page)
         return grades
 
@@ -151,16 +149,5 @@ async def run_single_browser_scrap_all(student_number: str):
         page = await load_usaint_page(browser, cookie_list)
         stats = await scrap_stat(page)
         attened_semester = parse.parse_attenedence(stats)
-        grades = await scrap_all_grade(page, attened_semester)
+        grades = await scrap_all_grades(page, attened_semester)
         return grades
-
-
-if __name__ == "__main__":
-    #     import time
-
-    #     start = time.time()
-    res = asyncio.run(run_single_all("20180811"))
-    # res = asyncio.run(run_multy("20180811"))
-
-    print(*res)
-#     print(res)
