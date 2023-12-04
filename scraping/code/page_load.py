@@ -14,7 +14,7 @@ async def create_default_browser():
             "--disable-dev-shm-usage",  # 메모리 공유 비활성화
             # "--single-process",
         ],
-        headless=False,
+        headless=True,
     )
 
     return browser  # 함수의 정상종료를 나타낸다.
