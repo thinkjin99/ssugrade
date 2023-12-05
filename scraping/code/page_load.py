@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from playwright.async_api import async_playwright, BrowserContext, Browser, Page
 from constant import *
 
@@ -8,16 +9,40 @@ async def create_default_browser():
         args=[
             "--disable-gpu",  # GPU 활용 하지 않음
             "--disable-extensions",
-            "--incognito",
-            "--deterministic-fetch",
             "--disable-http-cache",
             "--disable-dev-shm-usage",  # 메모리 공유 비활성화
-            # "--single-process",
+            "--single-process",
         ],
         headless=True,
     )
 
     return browser  # 함수의 정상종료를 나타낸다.
+
+
+@asynccontextmanager
+async def open_browser():
+    """
+    유세인트 성적 스크래핑 전체 로직을 가동합니다.
+
+    Args:
+        year (int, optional): _description_. Defaults to 2022.
+        semester (int, optional): _description_. Defaults to 2.
+
+    Returns:
+        _type_: _description_
+    """
+    browser = await create_default_browser()  # 브라우저를 가동합니다.
+
+    try:
+        # 로그인 및 성적 페이지를 로딩합니다.
+        yield browser
+
+    except Exception as e:
+        print(e)
+        raise e
+
+    finally:
+        await browser.close()
 
 
 async def check_cookie_valid(page: Page):

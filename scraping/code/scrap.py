@@ -1,37 +1,10 @@
 import asyncio
-from contextlib import asynccontextmanager
 
 from page_action import *
 from page_load import *
 import parse
 from constant import *
 from read_cookies import get_cookies
-
-
-@asynccontextmanager
-async def open_browser():
-    """
-    유세인트 성적 스크래핑 전체 로직을 가동합니다.
-
-    Args:
-        year (int, optional): _description_. Defaults to 2022.
-        semester (int, optional): _description_. Defaults to 2.
-
-    Returns:
-        _type_: _description_
-    """
-    browser = await create_default_browser()  # 브라우저를 가동합니다.
-
-    try:
-        # 로그인 및 성적 페이지를 로딩합니다.
-        yield browser
-
-    except Exception as e:
-        print(e)
-        raise e
-
-    finally:
-        await browser.close()
 
 
 async def get_page_grades(page: Page):
