@@ -45,7 +45,7 @@ async def scrap_year_grades(page: Page, semesters: list) -> list[dict]:
     year_grades = []
     for semester in semesters:
         await click_semeseter_dropdown(page, semester)
-        year_grades.append(await get_page_grades(page))
+        year_grades.extend(await get_page_grades(page))
 
     return year_grades
 
