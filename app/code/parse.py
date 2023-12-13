@@ -1,4 +1,4 @@
-from constant import SEMESTER_MAP
+from code.constant import SEMESTER_MAP
 from collections import defaultdict
 
 

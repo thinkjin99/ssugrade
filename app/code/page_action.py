@@ -1,5 +1,5 @@
 from playwright.async_api import expect, Page
-from constant import *
+from code.constant import *
 
 
 async def click_button(page: Page, selector: str):

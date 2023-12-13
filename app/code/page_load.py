@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from playwright.async_api import async_playwright, BrowserContext, Browser, Page
-from constant import *
+from code.constant import *
 
 
 async def create_default_browser():
@@ -12,9 +12,13 @@ async def create_default_browser():
             "--disable-http-cache",
             "--disable-dev-shm-usage",  # 메모리 공유 비활성화
             "--single-process",
+            "--disable-images",
+            "--disable-extensions",
+            "--disable-translate",
+            "--disable-default-apps",
         ],
-        # headless=True,
-        headless=False,
+        headless=True,
+        # headless=False,
     )
 
     return browser  # 함수의 정상종료를 나타낸다.
@@ -46,17 +50,15 @@ async def open_browser():
         await browser.close()
 
 
-async def check_cookie_valid(page: Page):
-    title = await page.locator("title").text_content(timeout=3000)
-    if title == "로그온":  # 쿠키 유효여부 확인
-        raise AssertionError("Login Error!")
-
-
 async def load_usaint_page(browser: Browser, cookie_list: list[dict]) -> Page:
     context = await browser.new_context()  # 브라우저 생성
     await context.add_cookies(cookie_list)  # 매개변수가 SetCookieParam 형식이여야 한다.
     page = await load_page(context)
-    await check_cookie_valid(page)
+
+    title = await page.locator("title").text_content(timeout=3000)
+    if title == "로그온":  # 쿠키 유효여부 확인
+        raise AssertionError("Login Error!")
+
     return page
 
 

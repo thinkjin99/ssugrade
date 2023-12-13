@@ -1,10 +1,10 @@
 import asyncio
 
-from page_action import *
-from page_load import *
-import parse
-from constant import *
-from read_cookies import get_cookies
+from code.page_action import *
+from code.page_load import *
+import code.parse as parse
+from code.constant import *
+from code.cookies import get_cookies
 
 
 async def get_page_grades(page: Page):

@@ -1,4 +1,4 @@
-from config.settings import YEAR, SEMESTER
+from code.config.settings import YEAR, SEMESTER
 
 URL = "https://ecc.ssu.ac.kr/sap/bc/webdynpro/sap/ZCMB3W0017"
 
