@@ -18,3 +18,9 @@ elif app_env == "local":
     PASSWORD = os.getenv("LOCAL_PASSWORD")
     DB_NAME = os.getenv("LOCAL_DB_NAME")
     HOST = os.getenv("LOCAL_DB_HOST")
+
+elif app_env == "docker":
+    USER_ID = os.getenv("LOCAL_USER_ID")
+    PASSWORD = os.getenv("LOCAL_PASSWORD")
+    DB_NAME = os.getenv("LOCAL_DB_NAME")
+    HOST = "host.docker.internal"
