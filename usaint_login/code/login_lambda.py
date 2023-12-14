@@ -4,17 +4,20 @@ from constant import *
 from lambda_utils import lamdba_decorator
 
 
-# def get_cookie(response: requests.Response) -> list[dict[str, str]]:
-#     cookie_list = [
-#         {
-#             "name": cookie.name,
-#             "value": cookie.value,
-#             "domain": cookie.domain,
-#             "path": cookie.path,
-#         }
-#         for cookie in response.cookies
-#     ]
-#     return cookie_list
+def create_cookies(
+    response: requests.Response, neccessary_cookies: tuple
+) -> list[dict[str, str]]:
+    cookie_list = [
+        {
+            "name": cookie.name,
+            "value": cookie.value,
+            "domain": cookie.domain,
+            "path": cookie.path,
+        }
+        for cookie in response.cookies
+        if cookie.name in neccessary_cookies
+    ]
+    return cookie_list
 
 
 def login(student_number: str, password: str) -> list:
@@ -47,9 +50,13 @@ def login(student_number: str, password: str) -> list:
     if login_res == None:
         raise Exception("Connection Fail")
 
-    assert "SAP_SESSIONID_SSP_100" in login_res.cookies, "Login Fail"  # 실패 코드 전달시
-    login_cookies = login_res.cookies.get("SAP_SESSIONID_SSP_100")
-    return login_cookies
+    neccessary_cookies = ("SAP_SESSIONID_SSP_100",)  # 필요 쿠키 리스트
+    cookies = create_cookies(login_res, neccessary_cookies)  # 필요한 쿠키만 추출
+
+    if len(cookies):
+        return cookies
+    else:
+        raise AssertionError("Login Fail")
 
 
 @lamdba_decorator
@@ -59,5 +66,5 @@ def handler(event, context) -> dict:
     student_number = body["student_number"]
     password = body["password"]
 
-    login_cookies = login(student_number, password)
-    return {"cookies": login_cookies}
+    cookies = login(student_number, password)
+    return {"cookies": cookies}
