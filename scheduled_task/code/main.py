@@ -19,7 +19,7 @@ def select_datas():
     return query
 
 
-def push_sqs(fcm_token: str, body: list):
+def push_sqs(fcm_token: str, body: list | str):
     sqs = boto3.client("sqs", region_name="ap-northeast-2")
     queue_url = "https://sqs.us-east-1.amazonaws.com/393430687602/ssugrade-push.fifo"
     resp = sqs.send_message(
@@ -27,13 +27,15 @@ def push_sqs(fcm_token: str, body: list):
         MessageBody=json.dumps({"fcm_token": fcm_token, "body": body}),
         MessageGroupId="default",
     )
-
     return resp
 
 
 async def get_grade_and_push(cookie, fcm_token):
     loop = asyncio.get_event_loop()
-    body = await run_single_browser_scrap_now(cookie)
+    try:
+        body = await run_single_browser_scrap_now(cookie)
+    except Exception as e:
+        body = str(e)
     send_msg = partial(push_sqs, fcm_token=fcm_token, body=body)
     resp = await loop.run_in_executor(None, send_msg)
     return resp
