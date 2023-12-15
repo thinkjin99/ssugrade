@@ -10,4 +10,4 @@ RUN pip install -r requirements.txt
 COPY ./code ${LAMBDA_TASK_ROOT}
 
 # Set the CMD to your handler (could also be done as a parameter override outside of the Dockerfile)
-CMD [ "refresh_cookie_lambda.handler" ]
+CMD [ "update_lambda.handler" ]
