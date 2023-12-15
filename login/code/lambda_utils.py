@@ -51,6 +51,9 @@ def lamdba_decorator(func):
         except AssertionError as e:
             response = create_response(401, {"msg": str(e)})
 
+        except KeyError as e:
+            response = create_response(422, {"msg": str(e) + "is not incorrect data"})
+
         except Exception as e:
             response = create_response(500, {"msg": str(traceback.format_exc())})
 
