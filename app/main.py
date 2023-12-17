@@ -7,22 +7,19 @@ from code.scrap import (
     run_single_browser_scrap_now,
     run_single_browser_scrap_all,
 )
-from code.cookies import call_refresh_lambda
 
 
 app = FastAPI()
 
 
 class User(BaseModel):
-    student_id: str
-    password: str
+    fcm_token: str
 
 
 @app.post("/grade/all")
 async def _scrap_all(user: User):
     try:
-        call_refresh_lambda(user.student_id, user.password)
-        data = await run_single_browser_scrap_all(user.student_id)
+        data = await run_single_browser_scrap_all(user.fcm_token)
         return JSONResponse(content=data, status_code=200)
 
     except Exception as e:
@@ -32,8 +29,7 @@ async def _scrap_all(user: User):
 @app.post("/grade/now", status_code=200)
 async def _scrap_now(user: User):
     try:
-        call_refresh_lambda(user.student_id, user.password)
-        data = await run_single_browser_scrap_now(user.student_id)
+        data = await run_single_browser_scrap_now(user.fcm_token)
         return JSONResponse(content=data, status_code=200)
 
     except Exception as e:
