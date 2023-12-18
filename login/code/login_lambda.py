@@ -36,8 +36,7 @@ def handler(event, context) -> dict:
     body = json.loads(event["body"])
     student_number = body["student_number"]
     password = body["password"]
-    fcm_token = body["fcm_token"]
-
+    fcm_token = body.get("fcm_token")
     cookies = login_usaint(student_number, password)
     res = update_user(student_number, cookies, fcm_token)
     return res
