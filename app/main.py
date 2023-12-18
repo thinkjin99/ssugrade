@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 from fastapi.responses import JSONResponse
 
-from code.scrap import (
+from scrap import (
     run_single_browser_scrap_now,
     run_single_browser_scrap_all,
 )

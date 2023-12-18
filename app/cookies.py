@@ -2,7 +2,7 @@ import sqlalchemy
 import boto3
 import json
 
-from code.database import execute_query, mapping_result
+from database import execute_query, mapping_result
 
 
 def call_refresh_lambda(student_number: str, password: str):
