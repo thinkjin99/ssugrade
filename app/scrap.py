@@ -19,7 +19,7 @@ async def get_page_grades(page: Page):
 
 
 async def scrap_attendance_stat(page: Page):
-    status_table_selector = 'tbody[id^="WD5"]'
+    status_table_selector = 'tbody[id^="WD6"]'
     columns = [
         "학년도",
         "학기",
@@ -40,7 +40,7 @@ async def scrap_attendance_stat(page: Page):
     return res
 
 
-async def scrap_all_grades(page: Page, attendence_info: dict):
+async def scrap_all_grades(page: Page, attendence_info: dict) -> list[dict]:
     total_grades = []
     click_semester = await page_action.click_semeseter_dropdown(page)
 
@@ -51,8 +51,7 @@ async def scrap_all_grades(page: Page, attendence_info: dict):
 
         for semester in semesters:
             await click_semester(semester)
-            grades = await get_page_grades(page)  # 학기, 학년도 정보가 없는 성적 데이터들
-            grades = parse.parse_grade(year, semester, grades)
+            grades = parse.parse_grade(year, semester, await get_page_grades(page))
             year_grades.extend(grades)
 
         total_grades.extend(year_grades)
@@ -64,17 +63,17 @@ async def run_single_browser_scrap_now(fcm_token: str):
     cookie_list = get_cookies(fcm_token)
     async with page_load.open_browser() as browser:
         page = await page_load.load_usaint_page(browser, cookie_list)
-        grades = await get_page_grades(page)
+        grades = parse.parse_grade(YEAR, SEMESTER, await get_page_grades(page))
         return grades
 
 
-async def run_single_browser_scrap_all(fcm_token: str):
+async def run_single_browser_scrap_all(fcm_token: str) -> list:
     cookie_list = get_cookies(fcm_token)
     async with page_load.open_browser() as browser:
         page = await page_load.load_usaint_page(browser, cookie_list)
         stats = await scrap_attendance_stat(page)
         attened_semester = parse.parse_attenedence(stats)
-        grades = await scrap_all_grades(page, attened_semester)
+        grades: list = await scrap_all_grades(page, attened_semester)
         return grades
 
 

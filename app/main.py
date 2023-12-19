@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-
 from fastapi.responses import JSONResponse
 
+from constant import YEAR, SEMESTER
+
+from grades import update_grades, hash_data
 from scrap import (
     run_single_browser_scrap_now,
     run_single_browser_scrap_all,
@@ -19,8 +21,15 @@ class User(BaseModel):
 @app.post("/grade/all")
 async def _scrap_all(user: User):
     try:
-        data = await run_single_browser_scrap_all(user.fcm_token)
-        return JSONResponse(content=data, status_code=200)
+        all_grades = await run_single_browser_scrap_all(user.fcm_token)
+        now_grade = [
+            grade
+            for grade in all_grades
+            if grade["학년도"] == YEAR and grade["학기"] == SEMESTER
+        ]
+
+        update_grades(user.fcm_token, hash_data(now_grade))
+        return JSONResponse(content=all_grades, status_code=200)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -29,8 +38,9 @@ async def _scrap_all(user: User):
 @app.post("/grade/now", status_code=200)
 async def _scrap_now(user: User):
     try:
-        data = await run_single_browser_scrap_now(user.fcm_token)
-        return JSONResponse(content=data, status_code=200)
+        grades = await run_single_browser_scrap_now(user.fcm_token)
+        update_grades(user.fcm_token, hash_data(grades))
+        return JSONResponse(content=grades, status_code=200)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
