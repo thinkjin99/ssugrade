@@ -1,6 +1,6 @@
 import hashlib
 import json
-from database import execute_query, mapping_result
+from database import execute_query
 import sqlalchemy
 
 
@@ -17,14 +17,6 @@ def hash_data(data: list):
 @execute_query
 def update_grades(fcm_token: str, hash_str: str):
     stmt = f'''UPDATE users SET grades='{hash_str}' WHERE fcm_token="{fcm_token}"'''
-    query = sqlalchemy.text(stmt)
-    return query
-
-
-@mapping_result(is_all=False)
-@execute_query
-def select_grades(fcm_token: str):
-    stmt = f'''SELECT grades from users WHERE fcm_token="{fcm_token}"'''
     query = sqlalchemy.text(stmt)
     return query
 

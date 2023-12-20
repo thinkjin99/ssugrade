@@ -15,13 +15,16 @@ app = FastAPI()
 
 
 class User(BaseModel):
+    student_number: str
     fcm_token: str
 
 
 @app.post("/grade/all")
 async def _scrap_all(user: User):
     try:
-        all_grades = await run_single_browser_scrap_all(user.fcm_token)
+        all_grades = await run_single_browser_scrap_all(
+            user.student_number, user.fcm_token
+        )
         now_grade = [
             grade
             for grade in all_grades
@@ -38,7 +41,7 @@ async def _scrap_all(user: User):
 @app.post("/grade/now", status_code=200)
 async def _scrap_now(user: User):
     try:
-        grades = await run_single_browser_scrap_now(user.fcm_token)
+        grades = await run_single_browser_scrap_now(user.student_number, user.fcm_token)
         update_grades(user.fcm_token, hash_data(grades))
         return JSONResponse(content=grades, status_code=200)
 

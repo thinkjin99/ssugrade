@@ -59,16 +59,16 @@ async def scrap_all_grades(page: Page, attendence_info: dict) -> list[dict]:
     return total_grades
 
 
-async def run_single_browser_scrap_now(fcm_token: str):
-    cookie_list = get_cookies(fcm_token)
+async def run_single_browser_scrap_now(student_number: str, fcm_token: str):
+    cookie_list = get_cookies(student_number, fcm_token)
     async with page_load.open_browser() as browser:
         page = await page_load.load_usaint_page(browser, cookie_list)
         grades = parse.parse_grade(YEAR, SEMESTER, await get_page_grades(page))
         return grades
 
 
-async def run_single_browser_scrap_all(fcm_token: str) -> list:
-    cookie_list = get_cookies(fcm_token)
+async def run_single_browser_scrap_all(student_number: str, fcm_token: str) -> list:
+    cookie_list = get_cookies(student_number, fcm_token)
     async with page_load.open_browser() as browser:
         page = await page_load.load_usaint_page(browser, cookie_list)
         stats = await scrap_attendance_stat(page)

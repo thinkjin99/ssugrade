@@ -7,7 +7,7 @@ def parse_table(inner_texts: str, columns: list, unused_columns: set | list = []
     table_texts = [t if t != "\xa0" else "" for t in inner_texts.split("\t")]
     text_by_rows = [
         table_texts[i : i + len(columns)]
-        for i in range(column_len, len(table_texts), column_len)
+        for i in range(column_len + 1, len(table_texts), column_len)
     ]  # 행 단위로 성적 가져옴
     grade_info = [
         {col: value for col, value in zip(columns, row) if col not in unused_columns}
