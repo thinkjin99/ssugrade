@@ -1,5 +1,5 @@
-from config.settings import YEAR, SEMESTER
-
+YEAR = "2023"
+SEMESTER = "2"
 URL = "https://ecc.ssu.ac.kr/sap/bc/webdynpro/sap/ZCMB3W0017"
 
 SEMESTER_MAP = {

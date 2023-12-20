@@ -9,7 +9,7 @@ from cookies import get_cookies
 async def get_page_grades(page: Page):
     grade_table_selector = 'tbody[id^="WD0"]'
     inner_texts = await page_action.get_inner_texts(page, grade_table_selector)
-    columns = ["상세성적", "과목명", "과목학점", "성적", "등급", "교수명", "비고", "과목코드"]
+    columns = ["성적", "등급", "과목명", "상세성적", "과목학점", "교수명", "비고", "과목코드"]
     unused_coumnls = set(("비고", "과목코드", "상세성적"))  # 사용 안하는 속성들
 
     res = parse.parse_table(

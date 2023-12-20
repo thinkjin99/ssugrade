@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from playwright.async_api import async_playwright, BrowserContext, Browser, Page
 from constant import *
+from page_action import click_popup
 
 
 async def create_default_browser():
@@ -18,7 +19,6 @@ async def create_default_browser():
             "--disable-default-apps",
         ],
         headless=True,
-        # headless=False,
     )
 
     return browser  # 함수의 정상종료를 나타낸다.
@@ -59,6 +59,11 @@ async def load_usaint_page(browser: Browser, cookie_list: list[dict]) -> Page:
     if title == "로그온":  # 쿠키 유효여부 확인
         raise AssertionError("Login Error!")
 
+    for _ in range(5):
+        is_popup = await click_popup(page)  # 팝업 클릭
+        if is_popup:
+            break
+
     return page
 
 
@@ -67,6 +72,7 @@ async def load_page(context: BrowserContext):
     로그인 쿠키가 추가된 브라우저로 성적 페이지를 로딩한다.
     """
     page = await context.new_page()  # 페이지 생성
+    # await page.route("**/*.{png,jpg,jpeg}", lambda route: route.abort())
     goto_res = await page.goto(url=URL, timeout=3000)
     # goto에 실패하면 assertion 에러 발생
     assert goto_res, "Page Load Failed"
