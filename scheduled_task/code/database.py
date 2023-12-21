@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from functools import wraps
 
-from sqlalchemy import create_engine, Select, Insert, Result
+from sqlalchemy import create_engine, Select, Insert, Result, TextClause
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.declarative import DeclarativeMeta
