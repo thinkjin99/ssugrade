@@ -37,7 +37,7 @@ async def click_dropdown(page: Page, dropdown_selector: str, value_selector: str
 
 async def click_semeseter_dropdown(page: Page):
     semester_drop_selector = 'input[role="combobox"][value$="학기"]'
-    last_semester = SEMESTER
+    last_semester = USAINT_SEMESTER  # 초기 학기 값은 유세인트의 디폴트 값
 
     # 현재 로딩된 년도와 쿼리한 년도가 다른 경우
     async def wrapper(semester: int | str):

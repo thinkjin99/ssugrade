@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 
-from constant import YEAR, SEMESTER
+from constant import USAINT_SEMESTER, USAINT_SEMESTER
 
 from grades import update_grades, hash_data
 from scrap import (
@@ -28,7 +28,7 @@ async def _scrap_all(user: User):
         now_grade = [
             grade
             for grade in all_grades
-            if grade["학년도"] == YEAR and grade["학기"] == SEMESTER
+            if grade["학년도"] == USAINT_SEMESTER and grade["학기"] == USAINT_SEMESTER
         ]
 
         update_grades(user.fcm_token, hash_data(now_grade))

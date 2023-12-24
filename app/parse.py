@@ -1,4 +1,4 @@
-from constant import SEMESTER_MAP, YEAR, SEMESTER
+from constant import SEMESTER_MAP, USAINT_YEAR, SSURADE_SEMESTER
 from collections import defaultdict
 
 
@@ -18,7 +18,7 @@ def parse_table(inner_texts: str, columns: list, unused_columns: set | list = []
 
 def parse_attenedence(stats: list[dict]) -> dict[str, list]:
     attended_semesters = defaultdict(list)
-    attended_semesters[YEAR].append(SEMESTER)
+    attended_semesters[USAINT_YEAR].append(SSURADE_SEMESTER)  # 가져올 학기에 현재 학기도 추가
     reversed_semester_map = {v: k for k, v in SEMESTER_MAP.items()}
     for stat in stats:
         year, semester = (stat.get("학년도"), stat.get("학기"))
@@ -33,7 +33,7 @@ def parse_attenedence(stats: list[dict]) -> dict[str, list]:
     return attended_semesters
 
 
-def parse_grade(year: str, sesmster: str, grades: list[dict]):
+def parse_grade(year: str, semester: str, grades: list[dict]):
     for grade in grades:
-        grade.update({"학년도": year, "학기": sesmster})
+        grade.update({"학년도": year, "학기": semester})
     return grades

@@ -1,4 +1,6 @@
-from config.settings import YEAR, SEMESTER
+USAINT_YEAR = "2023"  # 현재 유세인트의 기본 년도
+USAINT_SEMESTER = "3"  # 현재 유세인트의 기본 학기
+SSURADE_SEMESTER = "2"  # 서비스가 수집할 현재 학기
 
 URL = "https://ecc.ssu.ac.kr/sap/bc/webdynpro/sap/ZCMB3W0017"
 
