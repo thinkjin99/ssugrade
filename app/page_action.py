@@ -26,7 +26,12 @@ async def click_dropdown(page: Page, dropdown_selector: str, value_selector: str
     for _ in range(3):
         try:
             await click_button(page, dropdown_selector)  # 드랍다운 버튼 클릭
-            await click_button(page, value_selector)  # 드랍 다운에서 값 클릭
+            async with page.expect_request_finished(
+                lambda request: request.method == "POST", timeout=4000
+            ) as req:
+                await click_button(page, value_selector)  # 드랍 다운에서 값 클릭
+            print("Request Value: ", await req.value)
+
             break
 
         except Exception as e:
@@ -47,13 +52,11 @@ async def click_semeseter_dropdown(page: Page):
         try:
             nonlocal last_semester
             if semester == last_semester:
-                print("skip semester click")
+                print(f"Skip semester click {semester}")
                 return
 
-            async with page.expect_request_finished(timeout=2000) as req:
-                await click_dropdown(page, semester_drop_selector, semester_selector)
-                print("value: ", await req.value)
-                last_semester = semester
+            await click_dropdown(page, semester_drop_selector, semester_selector)
+            last_semester = semester
 
         except Exception as e:
             print(e)
@@ -72,12 +75,8 @@ async def click_year_dropdown(page: Page, year: int | str):
     # 년도의 드랍다운 버튼과 년도 원소 셀렉터
     year_drop_selector = 'input[role="combobox"][value^="20"]'
     year_selector = f'div[class~="lsListbox__value"][data-itemkey="{year}"]'
-    async with page.expect_request_finished(timeout=2000) as req:
-        await click_dropdown(page, year_drop_selector, year_selector)
-        print("value: ", await req.value)
+    await click_dropdown(page, year_drop_selector, year_selector)
     await page.wait_for_load_state("domcontentloaded")
-
-    # await wait_for_update(page, year_update_selector, str(year))  # 페이지 테이블 로딩을 대기
 
 
 async def get_inner_texts(page: Page, selector: str):

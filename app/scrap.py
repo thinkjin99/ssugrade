@@ -66,7 +66,7 @@ async def run_single_browser_scrap_now(student_number: str, fcm_token: str):
         click_semester = await page_action.click_semeseter_dropdown(page)
         await click_semester(SSURADE_SEMESTER)
         grades = parse.parse_grade(
-            USAINT_YEAR, USAINT_SEMESTER, await get_page_grades(page)
+            USAINT_YEAR, SSURADE_SEMESTER, await get_page_grades(page)
         )
         return grades
 
