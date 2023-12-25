@@ -1,4 +1,3 @@
-import re
 from collections import defaultdict
 
 from playwright.async_api import Page
@@ -23,18 +22,20 @@ async def parse_table(
     """
     table = page.locator(selector)
     rows = await table.locator("tr").all()  # 모든 row 선택
-    pattern = re.compile(r"[\xa0\n\t]+")  # 공백을 기준으로 td를 추출
+
     parsed_table_datas = []  # 파싱한 테이블 데이터
 
-    for row in rows[1:]:
-        texts = pattern.split(await row.inner_text())  # 패턴을 기준으로 분할
-        table_data = {
-            col: value
-            for col, value in zip(columns, texts[1:-1])  # 맨 앞,뒤의 컬럼은 사용하지 않는다.
-            if col not in unused_columns and value != ""  # 빈 값과 사용하지 않는 컬럼은 버린다.
-        }
-        if any(table_data):  # 공백으로만 가득찬 행일 경우 버림
-            parsed_table_datas.append(table_data)
+    for row in rows[1:]:  # 컬럼명은 건너 뛴다.
+        cells = await row.locator("td").all()  # 셀 추출
+        row_data = {}
+        for col, cell in zip(columns, cells[1:]):  # 셀 데이터 순회
+            text = await cell.inner_text()  # 셀 텍스트 추출
+            if col not in unused_columns:
+                row_data[col] = text.strip()  # 데이터 공백 제거
+
+        if any(row_data.values()):  # 딕셔너리의 모든 값이 빈 경우 추가하지 않는다.
+            parsed_table_datas.append(row_data)
+
     return parsed_table_datas
 
 
@@ -82,7 +83,6 @@ async def parse_grade_summary(page: Page) -> dict[str, list]:
         "상담여부",
         "유급",
     ]
-    # inner_texts = await get_inner_texts(page, status_table_selector)  # 성적 요약 테이블 내부 텍스트
     summaries = defaultdict(list)
     summaries[USAINT_YEAR].append(SSURADE_SEMESTER)  # 가져올 학기에 현재 학기도 추가
     parsed_rows = await parse_table(page, status_table_selector, columns)
@@ -101,7 +101,6 @@ async def parse_grade(page: Page) -> list[dict]:
     """
     성적 테이블의 텍스트를 추출한다.
 
-
     Args:
         page (Page): 현재 브라우저의 페이지
 
@@ -109,7 +108,6 @@ async def parse_grade(page: Page) -> list[dict]:
         list[dict]: 한 학기 성적 정보
     """
     grade_table_selector = 'tbody[id^="WD0"]'
-    inner_texts = await get_inner_texts(page, grade_table_selector)  # 성적 테이블 텍스트 추출
     columns = ["성적", "등급", "과목명", "상세성적", "과목학점", "교수명", "비고", "과목코드"]
     unused_coumnls = set(("비고", "과목코드", "상세성적"))  # 사용 안하는 속성들
 
