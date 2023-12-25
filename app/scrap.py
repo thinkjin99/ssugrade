@@ -1,3 +1,5 @@
+from typing import Callable
+
 from playwright.async_api import Page
 import page_action
 import page_load
@@ -7,15 +9,27 @@ from cookies import get_cookies
 
 
 async def scrap_all_grades(page: Page, attendence_info: dict) -> list[dict]:
+    """
+    전체 학기 성적을 수집합니다.
+
+    Args:
+        page (Page): 현재 페이지
+        attendence_info (dict):
+
+    Returns:
+        list[dict]: _description_
+    """
     total_grades = []
-    click_semester = await page_action.click_semeseter_dropdown(page)  # wrapper 함수 반환
+    click_semester_dropdown: Callable = (
+        await page_action.create_semeseter_dropdown_clicker(page)
+    )  # wrapper 함수 반환
 
     for year, semesters in attendence_info.items():
-        if year != USAINT_YEAR:
+        if year != USAINT_YEAR:  # 년도가 다를 경우 클릭
             await page_action.click_year_dropdown(page, year)
 
         for semester in semesters:
-            await click_semester(semester)
+            await click_semester_dropdown(semester)  # 학기 클릭
             grades = {
                 "year": year,
                 "semester": semester,
@@ -26,70 +40,48 @@ async def scrap_all_grades(page: Page, attendence_info: dict) -> list[dict]:
     return total_grades
 
 
-async def run_single_browser_scrap_now(student_number: str, fcm_token: str):
-    cookie_list = get_cookies(student_number, fcm_token)
+async def run_single_browser_scrap_now(
+    student_number: str, fcm_token: str
+) -> list[dict]:
+    """
+    현재 학기의 성적을 수집합니다.
+
+    Args:
+        student_number (str): 학번
+        fcm_token (str): fcm 토큰
+
+    Returns:
+        list[dict]: 성적 데이터
+    """
+    cookie_list = get_cookies(student_number, fcm_token)  # 로그인에 활용할 쿠키
     async with page_load.open_browser() as browser:
-        page = await page_load.load_usaint_page(browser, cookie_list)
-        click_semester = await page_action.click_semeseter_dropdown(page)
-        await click_semester(SSURADE_SEMESTER)
-        grades = await parse.parse_grade(page)
+        page = await page_load.load_usaint_page(browser, cookie_list)  # 유세인트 로딩
+        click_semester_dropdown: Callable = (
+            await page_action.create_semeseter_dropdown_clicker(page)
+        )
+        await click_semester_dropdown(SSURADE_SEMESTER)  # 학기 클릭
+        grades: list = await parse.parse_grade(page)  # 성적 파싱
         return grades
 
 
-async def run_single_browser_scrap_all(student_number: str, fcm_token: str) -> list:
+async def run_single_browser_scrap_all(
+    student_number: str, fcm_token: str
+) -> list[dict]:
+    """
+    전체 학기 성적을 수집합니다.
+
+    Args:
+        student_number (str): 학번
+        fcm_token (str): fcm 토큰
+
+    Returns:
+        list[dict]: 전체 학기 성적
+    """
     cookie_list = get_cookies(student_number, fcm_token)
     async with page_load.open_browser() as browser:
         page = await page_load.load_usaint_page(browser, cookie_list)
-        grade_summaries: dict = await parse.parse_grade_summary(page)
-        grades: list = await scrap_all_grades(page, grade_summaries)
+        grade_summaries: dict = await parse.parse_grade_summary(
+            page
+        )  # 현재까지 이수한 학기 성적 요약 (현재는 학기 정보만 존재)
+        grades: list = await scrap_all_grades(page, grade_summaries)  # 전체 성적 수집
         return grades
-
-
-# async def new_tab_scrap_year_grades(
-#     cookie_list: list[dict], year: str, semesters: list
-# ):
-#     async with page_load.open_browser() as browser:
-#         page = await page_load.load_usaint_page(browser, cookie_list)
-#         await page_action.click_year_dropdown(page, year)
-#         grade = await scrap_year_grades(page, year, semesters)
-#         return grade
-
-
-# async def new_tab_scrap_all_grades(
-#     attendence_info: dict, cookie_list: list[dict]
-# ) -> list:
-#     """
-#     복수 개의 브라우저에서 해당 년도의 성적을 가져온다.
-#     """
-#     total_grades = []
-#     tasks = [
-#         asyncio.create_task(new_tab_scrap_year_grades(cookie_list, year, semesters))
-#         for year, semesters in attendence_info.items()
-#     ]
-#     total_grades = await asyncio.gather(*tasks)
-#     return total_grades
-
-
-# async def run_multy_browser_scrapl_all_grades(fcm_token: str):
-#     total_grades = []
-#     async with page_load.open_browser() as browser:
-#         cookie_list = get_cookies(fcm_token)  # 로그인에 필요한 쿠키 데이터
-#         page = await page_load.load_usaint_page(browser, cookie_list)
-#         stats = await scrap_attendance_stat(page)  # 현재까지의 학적 정보 가져옴
-#         attendence_info = parse.parse_attenedence(stats)
-#         years = list(attendence_info.keys())
-#         first_year = years[0]
-
-#         task = asyncio.create_task(
-#             scrap_year_grades(page, first_year, attendence_info[first_year])
-#         )
-
-#         if len(years) > 1:
-#             attendence_info = {
-#                 k: v for k, v in attendence_info.items() if k != first_year
-#             }
-#             grades = await new_tab_scrap_all_grades(attendence_info, cookie_list)
-#             total_grades.extend(grades)
-
-#         total_grades.extend(await task)
-#         return total_grades

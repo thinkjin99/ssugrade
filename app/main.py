@@ -1,8 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
-
-from constant import USAINT_SEMESTER, USAINT_SEMESTER
+from constant import USAINT_SEMESTER, SSURADE_SEMESTER
 
 from grades import update_grades, hash_data
 from scrap import (
@@ -20,30 +19,30 @@ class User(BaseModel):
 
 
 @app.post("/grade/all")
-async def _scrap_all(user: User):
+async def scrap_all(user: User):
     try:
-        all_grades = await run_single_browser_scrap_all(
-            user.student_number, user.fcm_token
-        )
-        now_grade = [
-            grade
-            for grade in all_grades
-            if grade["학년도"] == USAINT_SEMESTER and grade["학기"] == USAINT_SEMESTER
-        ]
+        grades = await run_single_browser_scrap_all(user.student_number, user.fcm_token)
+        for grade in grades:
+            if (
+                grade["year"] == USAINT_SEMESTER
+                and grade["semester"] == SSURADE_SEMESTER
+            ):
+                update_grades(
+                    user.fcm_token, hash_data(grade["grades"])
+                )  # 현재 학기 성적 업데이트
 
-        update_grades(user.fcm_token, hash_data(now_grade))
-        return JSONResponse(content=all_grades, status_code=200)
+        return JSONResponse(content={"data": grades}, status_code=200)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/grade/now", status_code=200)
-async def _scrap_now(user: User):
+async def scrap_now(user: User):
     try:
         grades = await run_single_browser_scrap_now(user.student_number, user.fcm_token)
-        update_grades(user.fcm_token, hash_data(grades))
-        return JSONResponse(content=grades, status_code=200)
+        update_grades(user.fcm_token, hash_data(grades)) #성적 업데이트
+        return JSONResponse(content={"data": grades}, status_code=200)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
