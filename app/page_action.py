@@ -79,27 +79,6 @@ async def click_year_dropdown(page: Page, year: int | str):
     await page.wait_for_load_state("domcontentloaded")
 
 
-async def get_inner_texts(page: Page, selector: str):
-    """
-    성적 테이블 내부의 텍스트를 추출한다.
-
-    Raises:
-        AssertionError: 성적 테이블을 못찾는 경우
-
-    Returns:
-        str: 성적 테이블 내에 존재하는 모든 텍스트
-    """
-
-    table_loc = page.locator(selector)
-    await expect(table_loc).to_be_attached(timeout=2000)
-    inner_texts = await table_loc.inner_text()
-
-    if not inner_texts:
-        # 값이 빈 경우는 태그 자체를 탐색하지 못한 경우이다.
-        raise AssertionError(">> Locator can't locate table")
-    return inner_texts
-
-
 async def click_popup(page: Page):
     try:
         await page.click(".urPWFloatRight", timeout=1000)

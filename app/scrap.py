@@ -6,55 +6,22 @@ from constant import *
 from cookies import get_cookies
 
 
-async def get_page_grades(page: Page):
-    grade_table_selector = 'tbody[id^="WD0"]'
-    inner_texts = await page_action.get_inner_texts(page, grade_table_selector)
-    columns = ["성적", "등급", "과목명", "상세성적", "과목학점", "교수명", "비고", "과목코드"]
-    unused_coumnls = set(("비고", "과목코드", "상세성적"))  # 사용 안하는 속성들
-
-    res = parse.parse_table(
-        inner_texts, columns, unused_coumnls
-    )  # 텍스트를 JSON형식의 딕셔너리로 파싱합니다.
-    return res
-
-
-async def scrap_attendance_stat(page: Page):
-    status_table_selector = 'tbody[id^="WD6"]'
-    columns = [
-        "학년도",
-        "학기",
-        "신청학점",
-        "취득학점",
-        "P/F학점",
-        "평점평균",
-        "평점계",
-        "산술평균",
-        "학기별석차",
-        "전체석차",
-        "학사경고여부",
-        "상담여부",
-        "유급",
-    ]
-    inner_texts = await page_action.get_inner_texts(page, status_table_selector)
-    res = parse.parse_table(inner_texts, columns)
-    return res
-
-
 async def scrap_all_grades(page: Page, attendence_info: dict) -> list[dict]:
     total_grades = []
     click_semester = await page_action.click_semeseter_dropdown(page)  # wrapper 함수 반환
 
     for year, semesters in attendence_info.items():
-        year_grades = []
         if year != USAINT_YEAR:
             await page_action.click_year_dropdown(page, year)
 
         for semester in semesters:
             await click_semester(semester)
-            grades = parse.parse_grade(year, semester, await get_page_grades(page))
-            year_grades.extend(grades)
-
-        total_grades.extend(year_grades)
+            grades = {
+                "year": year,
+                "semester": semester,
+                "grades": await parse.parse_grade(page),
+            }
+            total_grades.append(grades)
 
     return total_grades
 
@@ -65,9 +32,7 @@ async def run_single_browser_scrap_now(student_number: str, fcm_token: str):
         page = await page_load.load_usaint_page(browser, cookie_list)
         click_semester = await page_action.click_semeseter_dropdown(page)
         await click_semester(SSURADE_SEMESTER)
-        grades = parse.parse_grade(
-            USAINT_YEAR, SSURADE_SEMESTER, await get_page_grades(page)
-        )
+        grades = await parse.parse_grade(page)
         return grades
 
 
@@ -75,9 +40,8 @@ async def run_single_browser_scrap_all(student_number: str, fcm_token: str) -> l
     cookie_list = get_cookies(student_number, fcm_token)
     async with page_load.open_browser() as browser:
         page = await page_load.load_usaint_page(browser, cookie_list)
-        stats = await scrap_attendance_stat(page)
-        attened_semester = parse.parse_attenedence(stats)
-        grades: list = await scrap_all_grades(page, attened_semester)
+        grade_summaries: dict = await parse.parse_grade_summary(page)
+        grades: list = await scrap_all_grades(page, grade_summaries)
         return grades
 
 
