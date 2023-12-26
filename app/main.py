@@ -3,8 +3,8 @@ from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 from constant import USAINT_SEMESTER, SSURADE_SEMESTER
 
-from grades import update_grades, hash_data
-from scrap import (
+from data.grades import update_grades, hash_data
+from core.scrap import (
     run_single_browser_scrap_now,
     run_single_browser_scrap_all,
 )
@@ -41,7 +41,7 @@ async def scrap_all(user: User):
 async def scrap_now(user: User):
     try:
         grades = await run_single_browser_scrap_now(user.student_number, user.fcm_token)
-        update_grades(user.fcm_token, hash_data(grades)) #성적 업데이트
+        update_grades(user.fcm_token, hash_data(grades))  # 성적 업데이트
         return JSONResponse(content={"data": grades}, status_code=200)
 
     except Exception as e:

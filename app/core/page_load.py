@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
 from playwright.async_api import async_playwright, BrowserContext, Browser, Page
+
 from constant import *
-from page_action import click_popup
+from core.page_action import click_popup
 
 
 async def create_default_browser() -> Browser:

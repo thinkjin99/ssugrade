@@ -1,11 +1,10 @@
 from typing import Callable
 
 from playwright.async_api import Page
-import page_action
-import page_load
-import parse
-from constant import *
-from cookies import get_cookies
+from core import page_action, page_load, parse
+
+from constant import USAINT_YEAR, SSURADE_SEMESTER
+from data.cookies import get_cookies
 
 
 async def scrap_all_grades(page: Page, attendence_info: dict) -> list[dict]:

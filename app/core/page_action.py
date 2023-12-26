@@ -1,4 +1,5 @@
 from typing import Callable
+
 from playwright.async_api import expect, Page
 from constant import *
 
