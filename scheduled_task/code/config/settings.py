@@ -4,9 +4,6 @@ import os
 load_dotenv(os.path.dirname(os.path.realpath(__file__)) + "/.env")
 app_env = os.getenv("APP_ENV", "dev")
 
-YEAR = os.getenv("YEAR", "2023")  # 현재 유세인트의 기본 년도
-SEMESTER = os.getenv("SEMESTER", "2")  # 현재 유세인트의 기본 학기
-
 if app_env == "dev":
     USER_ID = os.getenv("USER_ID")
     PASSWORD = os.getenv("PASSWORD")

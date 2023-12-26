@@ -20,9 +20,3 @@ def update_grades(fcm_token: str, hash_str: str):
     query = sqlalchemy.text(stmt)
     return query
 
-
-# 예제 딕셔너리
-if __name__ == "__main__":
-    data = [{"a": 1}, {"b": 2}]
-    hashed = hash_data(data)
-    update_grades("test7", hashed)

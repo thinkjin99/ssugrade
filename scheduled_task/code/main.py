@@ -1,87 +1,60 @@
 import asyncio
-import boto3
-import sqlalchemy
-from functools import partial
 
-from scrap import run_single_browser_scrap_now
-from database import mapping_result, execute_query
-from cookies import *
-from grades import *
-
-
-@mapping_result(is_all=True)
-@execute_query
-def select_datas():
-    stmt = f"""SELECT student_number, fcm_token, grades FROM users"""
-    query = sqlalchemy.text(stmt)
-    return query
+from data.user_info import select_user_infos
+from sqs import *
 
 
 def yield_datas(datas: list, offset: int):
+    """
+    데이터를 5개씩 추출한다.
+
+    Args:
+        datas (list): 이터러블 데이터
+        offset (int): 한번에 추출할 데이터의 크기
+
+    Yields:
+        iterable: 5개씩 잘라서 전송
+    """
     index = 0
     while len(datas) > index:
         yield datas[index : index + offset]
         index += offset
 
 
-async def push_sqs(body: list | str, fcm_token: str, attributes: dict):
-    loop = asyncio.get_event_loop()
-    sqs = boto3.client("sqs", region_name="ap-northeast-2")
-    queue_url = "https://sqs.us-east-1.amazonaws.com/393430687602/ssugrade-push.fifo"
-    send_msg = partial(
-        sqs.send_message,
-        QueueUrl=queue_url,
-        MessageBody=json.dumps({"fcm_token": fcm_token, "body": body}),
-        MessageGroupId="ssurade",
-        MessageAttributes=attributes,
+async def create_task_routine(user_info: dict) -> dict | None:
+    """
+    SQS 메시지 작성 및 전송
+
+    Args:
+        user_info (dict): 유저 행 정보
+
+    Returns:
+        dict | None: 성공시 메시지 정보 실패시 None
+    """
+    message = await create_message(
+        user_info["student_number"], user_info["fcm_token"], user_info["grades"]
     )
-    resp = await loop.run_in_executor(None, send_msg)
-    return resp
-
-
-async def create_message(student_number: str, fcm_token: str, grades: str):
-    try:
-        body = await run_single_browser_scrap_now(student_number, fcm_token)
-        print(body)
-        if grades != hash_data(body):  # 해싱한 성적 데이터와 디비 저장 값을 대조
-            attributes = {
-                "title": {"StringValue": "New Grade", "DataType": "String"},
-            }
-            return body, fcm_token, attributes
-
-    except AssertionError as e:  # login error
-        body = str(e)
-        attributes = {
-            "title": {"StringValue": "Login Error", "DataType": "String"},
-        }
-        return body, fcm_token, attributes
-
-    except Exception as e:
-        print(e)  # TODO 에러 처리용 슬렉 봇이 필요하지 않을까...
+    if message:  # if  mesaage exist push sqs
+        res = await push_sqs(*message)
+        print(f"{res} is completed...")
+    else:
+        return
 
 
 async def main():
-    async def create_task_routine(row: dict):
-        message = await create_message(
-            row["student_number"], row["fcm_token"], row["grades"]
-        )
-        if message:  # if  mesaage exist push sqs
-            return await push_sqs(*message)
+    """
+    데이터 베이스에 존재하는 모든 유저 정보 순회하며 현재 학기 성적 갱신
+    """
 
-    # datas = [
-    #     {"student_number": "20180811", "fcm_token": "test3", "grades": "aa"}
-    #     for _ in range(20)
-    # ]
-    # query_result = yield_datas(datas, 5)
-
-    query_result = yield_datas(select_datas(), 5)
+    query_result = yield_datas(select_user_infos(), 5)  # 5개씩 유저 정보 추출
 
     try:
-        while rows := next(query_result):
-            datas = [row for row in rows]
-            tasks = [asyncio.create_task(create_task_routine(row)) for row in datas]
-            res = await asyncio.gather(*tasks, return_exceptions=False)
-            print(f"{datas} is completed...")
+        while user_infos := next(query_result):
+            tasks = [
+                asyncio.create_task(create_task_routine(user_info))
+                for user_info in user_infos
+            ]  # 5개 비동기로 실행
+            await asyncio.gather(*tasks, return_exceptions=False)
 
     except StopIteration:
         pass
