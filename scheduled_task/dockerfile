@@ -9,10 +9,3 @@ RUN pip install -r requirements.txt
 RUN playwright install
 
 CMD ["python3.10", "main.py"]
-
-
-
-
-
-
-
