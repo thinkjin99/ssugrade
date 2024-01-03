@@ -12,7 +12,7 @@ from layer.lambda_utils import lamdba_decorator
 if __name__ == "__main__":
     session = RequestSession()
 
-    login_res = session.send_request(post_login("20180806", "kidok0714!"))
+    login_res = session.send_request(post_login("", "!"))
     res = scrap_hakgi_grade_summary(session)
     # res = scrap_all_hakgi_grades(session, res["grades"])
     # res = scrap_one_hakgi_grades(session, "2022", "2")
