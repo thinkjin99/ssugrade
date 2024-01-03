@@ -114,7 +114,7 @@ def parse_average_grade(soup: BeautifulSoup) -> dict:
         soup (BeautifulSoup): 페이지 객체
 
     Returns:
-        dict: 전체 이수 평균 및 이수 학점
+        dict: 전체 이수 평균 및 이수 학점, {'신청학점': '119', '평균평점': '3.54'}
     """
     average_grades_selector = ".group2 > .tbl > table > tbody td"
     rows = select_all(soup, average_grades_selector)
@@ -123,7 +123,7 @@ def parse_average_grade(soup: BeautifulSoup) -> dict:
     return datas
 
 
-def parse_hakgi_grade_summary(soup: BeautifulSoup) -> list[dict]:
+def parse_hakgi_grade_summaries(soup: BeautifulSoup) -> list[dict]:
     """
     학기 별 성적 요약 데이터를 파싱합니다.
 

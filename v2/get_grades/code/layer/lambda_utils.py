@@ -2,12 +2,6 @@ import traceback
 import json
 
 
-
-
-
-
-
-
 def create_response(status_code: str | int, data: dict) -> dict:
     """
     AWS_PROXY 설정의 람다 응답 기본형태

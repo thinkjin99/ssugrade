@@ -2,7 +2,7 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 
-class SessionRequest:
+class RequestSession:
     def __init__(self) -> None:
         self.session = self.create_session()
 
@@ -18,7 +18,7 @@ class SessionRequest:
         session.mount("http://", HTTPAdapter(max_retries=retries))  # Retry 세션 생성
         return session
 
-    def session_request(self, request: requests.Request):
+    def send_request(self, request: requests.Request):
         prepared_request = self.session.prepare_request(request)
         try:
             resp = self.session.send(prepared_request)  # send request
