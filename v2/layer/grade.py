@@ -7,6 +7,7 @@ from layer.parse import (
     parse_hakgi_grade_summaries,
     parse_hakgi_detail_grades,
     create_soup_object,
+    is_cookie_valid,
 )
 
 
@@ -31,12 +32,11 @@ def scrap_hakgi_grade_summary(session: RequestSession) -> dict:
     grade_summary_response = session.send_request(get_hakgi_grade_summary())
     assert grade_summary_response
     grade_summary_page = create_soup_object(grade_summary_response.text)
-
+    assert is_cookie_valid(grade_summary_page), "Login Error"  # 쿠키가 유효해야 아래 진행
     total_average_grade: dict = parse_average_grade(grade_summary_page)  # 전체 평점 추출
     grade_summaries: list[dict] = parse_hakgi_grade_summaries(
         grade_summary_page
     )  # 학기별 요약 추출
-
     summary = {**total_average_grade}  # copy dict
     summary["요약성적들"] = grade_summaries  # 요약 정보 업데이트
     return summary
@@ -70,6 +70,7 @@ def scrap_hakgi_detail_grades(
         grade_response = session.send_request(post_hakgi_detail_grade(year, hakgi))
         assert grade_response
         grade_page = create_soup_object(grade_response.text)
+        assert is_cookie_valid(grade_page), "Login Error"
         grades = parse_hakgi_detail_grades(grade_page)
         return {"년도": year, "학기": hakgi, "성적들": grades}
     else:

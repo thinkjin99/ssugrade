@@ -1,4 +1,5 @@
 from collections import namedtuple
+from functools import wraps
 import re
 from typing import Callable, Any, Dict, Tuple, NamedTuple
 from bs4 import BeautifulSoup, Tag
@@ -30,6 +31,7 @@ def parsing_exception_handler(func: Callable[..., Any]) -> Callable[..., Any]:
         Callable[..., Any]: 로깅 및 예외처리
     """
 
+    @wraps(func)
     def wrapper(
         *args: Tuple[Any], raise_exception: bool = True, **kwargs: Dict[Any, Any]
     ) -> Any:
@@ -76,6 +78,24 @@ def select_one(parsing_object: BeautifulSoup | Tag, selector: str) -> Tag | None
     """
     element = parsing_object.select_one(selector)
     return element
+
+
+def is_cookie_valid(soup: BeautifulSoup) -> bool:
+    """
+    로그인 버튼과 인풋 태그를 파싱해 현재 페이지가 로그인 페이지인지 검증한다.
+    이를 통해 쿠키의 유효 여부를 파악한다.
+
+    Args:
+        soup (BeautifulSoup): 응답 html 객체
+
+    Returns:
+        bool: 쿠키 유효여부
+    """
+    login_button = select_one(soup, ".logArea > .btnC > a", raise_exception=False)
+    if login_button:
+        return login_button.text != "로그인"
+    else:
+        return True
 
 
 def parse_table(soup: BeautifulSoup, table_selector: str) -> list[NamedTuple]:
