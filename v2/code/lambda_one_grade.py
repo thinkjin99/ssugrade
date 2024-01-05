@@ -13,6 +13,16 @@ def lambda_handler(event, context) -> dict:
     token = body["loginCookie"]
     year = body["year"]
     hakgi = body["hakgi"]
+
+    if hakgi == "1" or hakgi == "2":
+        hakgi = f"{hakgi} 학기"
+
+    elif hakgi == "여름" or hakgi == "겨울":
+        hakgi = f"{hakgi}학기"
+
+    else:
+        raise ValueError("Hakgi must be 1,2 or 여름, 겨울")
+
     session = RequestSession()
     session.session.cookies.set("loginCookie", token, domain="mobile.ssu.ac.kr")
     session.session.cookies.set("JSESSIONID", jsessionid, domain="mobile.ssu.ac.kr")

@@ -32,10 +32,6 @@ def get_hakgi_grade_summary() -> requests.Request:
 
 def post_hakgi_detail_grade(year: str, hakgi: str) -> requests.Request:
     grade_url = "https://mobile.ssu.ac.kr/student/gradeGradeInfo.do"  # to
-
-    if hakgi.isnumeric():
-        hakgi = f"{hakgi} 학기"
-
     grade_request = requests.Request(
         method="POST",
         url=grade_url,
