@@ -14,7 +14,7 @@ def create_soup_object(html_source: str) -> BeautifulSoup:
     Returns:
         BeautifulSoup: bs4 객체
     """
-    soup = BeautifulSoup(html_source, "lxml")  # 파싱 진행
+    soup = BeautifulSoup(html_source, "html.parser")  # 파싱 진행
     return soup
 
 
