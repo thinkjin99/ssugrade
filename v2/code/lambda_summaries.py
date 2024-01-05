@@ -7,7 +7,7 @@ from layer.lambda_utils import lamdba_decorator
 
 
 @lamdba_decorator
-def handler(event, context) -> dict:
+def lambda_handler(event, context) -> dict:
     body = json.loads(event["body"])
     jsessionid = body["JSESSIONID"]
     token = body["loginCookie"]
